@@ -16,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "group")
-public class Groups {
+public class Group {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long group_id;
@@ -31,7 +31,7 @@ public class Groups {
     private User owner;
 
     @OneToMany(mappedBy = "group")
-    public List<Groups> members;
+    public List<Group> members;
 
-    
+
 }
