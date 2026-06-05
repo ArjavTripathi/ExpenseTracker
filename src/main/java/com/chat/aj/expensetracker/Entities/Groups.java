@@ -8,13 +8,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "groups")
+@Table(name = "group")
 public class Groups {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,5 +30,8 @@ public class Groups {
     @JsonIgnoreProperties({"email", "password", "verified", "created_at", "owned_groups"})
     private User owner;
 
+    @OneToMany(mappedBy = "group")
+    public List<Groups> members;
 
+    
 }
