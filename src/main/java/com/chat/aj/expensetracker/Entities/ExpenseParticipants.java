@@ -1,30 +1,30 @@
 package com.chat.aj.expensetracker.Entities;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Group_Members {
+public class ExpenseParticipants {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id", nullable = false)
-    private Group group;
+    @ManyToOne
+    @JoinColumn(name = "expenses_id")
+    private Expenses expenses;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User member;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
-
-
+    private BigDecimal amount;
 }

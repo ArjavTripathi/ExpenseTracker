@@ -15,7 +15,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "group")
+@Table(name = "groups")
 public class Group {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,7 +31,7 @@ public class Group {
     private User owner;
 
     @OneToMany(mappedBy = "group")
-    public List<Group> members;
+    public List<GroupMembers> members;
 
 
 }

@@ -15,6 +15,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,9 +42,9 @@ public class User {
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("member")
-    private List<Group_Members> myGroups;
+    private List<GroupMembers> myGroups;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("user")
-    private List<Expense_Participants> expense_participant;
+    private List<ExpenseParticipants> expense_participant;
 }
