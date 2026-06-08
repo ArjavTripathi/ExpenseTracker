@@ -34,4 +34,22 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(
+            UnauthorizedException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                401, "Unauthorized", ex.getMessage(), request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(
+            UnauthorizedException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                409, "Conflict", ex.getMessage(), request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
 }

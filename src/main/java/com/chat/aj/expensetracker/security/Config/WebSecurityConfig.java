@@ -70,7 +70,7 @@ public class WebSecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/accounts/**").authenticated()
-                        .requestMatchers("/app/**").authenticated()
+                        .requestMatchers("/api/group/**").authenticated()
                         .anyRequest().authenticated()
                 );
         http.authenticationProvider(authenticationProvider());

@@ -1,7 +1,7 @@
 package com.chat.aj.expensetracker.Auth;
 
-import com.chat.aj.expensetracker.common.DTOs.LoginRequest;
-import com.chat.aj.expensetracker.common.DTOs.RegisterRequest;
+import com.chat.aj.expensetracker.Auth.DTOs.LoginRequest;
+import com.chat.aj.expensetracker.Auth.DTOs.RegisterRequest;
 import com.chat.aj.expensetracker.security.JWT.JWTAuthenticationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

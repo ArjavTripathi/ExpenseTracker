@@ -1,10 +1,11 @@
 package com.chat.aj.expensetracker.Auth;
 
-import com.chat.aj.expensetracker.common.DTOs.LoginRequest;
-import com.chat.aj.expensetracker.common.DTOs.RegisterRequest;
+import com.chat.aj.expensetracker.Auth.DTOs.LoginRequest;
+import com.chat.aj.expensetracker.Auth.DTOs.RegisterRequest;
 import com.chat.aj.expensetracker.common.Entities.User;
 import com.chat.aj.expensetracker.common.Entities.UserRepository;
 import com.chat.aj.expensetracker.common.Exceptions.DuplicateResourceException;
+import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
 import com.chat.aj.expensetracker.security.Accounts.AccountDetails;
 import com.chat.aj.expensetracker.security.JWT.JWTAuthenticationResponse;
 import com.chat.aj.expensetracker.security.JWT.JWTService;
@@ -26,9 +27,10 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
     private AuthenticationManager authenticationManager;
 
-//    public JWTAuthenticationResponse findUserByEmail(String email){
-//
-//    }
+    public User findUserByEmail(String email){
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Cannot find user"));
+    }
 
 
     public JWTAuthenticationResponse Login(LoginRequest login){
