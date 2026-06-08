@@ -5,7 +5,6 @@ import com.chat.aj.expensetracker.common.DTOs.RegisterRequest;
 import com.chat.aj.expensetracker.common.Entities.User;
 import com.chat.aj.expensetracker.common.Entities.UserRepository;
 import com.chat.aj.expensetracker.common.Exceptions.DuplicateResourceException;
-import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
 import com.chat.aj.expensetracker.security.Accounts.AccountDetails;
 import com.chat.aj.expensetracker.security.JWT.JWTAuthenticationResponse;
 import com.chat.aj.expensetracker.security.JWT.JWTService;
@@ -14,12 +13,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 @AllArgsConstructor
