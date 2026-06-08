@@ -2,6 +2,7 @@ package com.chat.aj.expensetracker.security.Config;
 
 import com.chat.aj.expensetracker.security.Accounts.AccountDetailsService;
 import com.chat.aj.expensetracker.security.JWT.JWTAuthenticationFilter;
+import com.chat.aj.expensetracker.security.JWT.JWTService;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,10 +30,12 @@ import java.util.List;
 @AllArgsConstructor
 public class WebSecurityConfig {
     private AccountDetailsService accountService;
+    private JWTService jwtService;
 
     @Bean
     public JWTAuthenticationFilter jwtAuthenticationFilter(){
-        return new JWTAuthenticationFilter();
+
+        return new JWTAuthenticationFilter( jwtService, accountService );
     }
 
     @Bean
