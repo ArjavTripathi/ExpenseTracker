@@ -1,6 +1,8 @@
 package com.chat.aj.expensetracker.Auth;
 
+import com.chat.aj.expensetracker.common.DTOs.LoginRequest;
 import com.chat.aj.expensetracker.common.DTOs.RegisterRequest;
+import com.chat.aj.expensetracker.security.JWT.JWTAuthenticationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -18,5 +20,11 @@ public class AuthController {
     public ResponseEntity<String> register(@RequestBody RegisterRequest registerRequest){
         authService.Register(registerRequest);
         return ResponseEntity.ok("Success!");
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest){
+        JWTAuthenticationResponse jwt = authService.Login(loginRequest);
+        return ResponseEntity.ok(jwt.getToken());
     }
 }

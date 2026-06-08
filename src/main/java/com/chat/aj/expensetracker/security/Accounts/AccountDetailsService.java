@@ -22,6 +22,7 @@ public class AccountDetailsService implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        System.out.println("Loading user by email: " + username);
         User user = accountsRepository.findByEmail(username)
                 .orElseThrow(() ->
                         new UsernameNotFoundException("User not found with email: " + username));

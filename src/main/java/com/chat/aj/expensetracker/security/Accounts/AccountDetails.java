@@ -36,8 +36,8 @@ public class AccountDetails implements UserDetails {
         return new AccountDetails(
                 acc.getId(),
                 acc.getEmail(),
-                acc.getName(),
                 acc.getPassword(),
+                acc.getName(),
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
         );
     }
