@@ -1,9 +1,9 @@
 package com.chat.aj.expensetracker.security.Accounts;
 
-import com.chat.aj.expensetracker.Entities.User;
-import com.chat.aj.expensetracker.Entities.UserRepository;
+import com.chat.aj.expensetracker.common.Entities.User;
+import com.chat.aj.expensetracker.common.Entities.UserRepository;
 import jakarta.transaction.Transactional;
-import lombok.Setter;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

@@ -1,6 +1,6 @@
 package com.chat.aj.expensetracker.security.Accounts;
 
-import com.chat.aj.expensetracker.Entities.User;
+import com.chat.aj.expensetracker.common.Entities.User;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -8,12 +8,14 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serial;
 import java.util.Collection;
 import java.util.Collections;
 
 @Data
 @NoArgsConstructor
 public class AccountDetails implements UserDetails {
+    @Serial
     private static final long serialVersionUID = 1L;
     private Long id;
     private String email;

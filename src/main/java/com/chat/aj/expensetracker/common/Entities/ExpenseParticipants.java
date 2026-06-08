@@ -1,4 +1,4 @@
-package com.chat.aj.expensetracker.Entities;
+package com.chat.aj.expensetracker.common.Entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

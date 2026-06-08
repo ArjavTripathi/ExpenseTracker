@@ -1,4 +1,4 @@
-package com.chat.aj.expensetracker.Entities;
+package com.chat.aj.expensetracker.common.Entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;

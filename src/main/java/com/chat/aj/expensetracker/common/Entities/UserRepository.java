@@ -1,4 +1,4 @@
-package com.chat.aj.expensetracker.Entities;
+package com.chat.aj.expensetracker.common.Entities;
 
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
