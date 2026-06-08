@@ -14,6 +14,7 @@ import java.util.Collections;
 
 @Data
 @NoArgsConstructor
+@SuppressWarnings("NullableProblems")
 public class AccountDetails implements UserDetails {
     @Serial
     private static final long serialVersionUID = 1L;
