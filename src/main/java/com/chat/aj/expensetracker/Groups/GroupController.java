@@ -25,8 +25,8 @@ public class GroupController {
     }
 
     @PutMapping
-    public ResponseEntity<String> addMember(@RequestBody AddMemberResponse newMember){
-        groupService.addMemberToGroup(newMember);
+    public ResponseEntity<String> addMember(@RequestBody AddMemberResponse newMember, Principal principal){
+        groupService.addMemberToGroup(newMember, principal.getName());
         return ResponseEntity.ok("Success!");
     }
 }
