@@ -32,6 +32,4 @@ public class Group {
 
     @OneToMany(mappedBy = "group")
     public List<GroupMembers> members;
-
-
 }

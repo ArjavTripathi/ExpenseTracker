@@ -1,10 +1,12 @@
 package com.chat.aj.expensetracker.Groups.DTOs;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@Getter
 @AllArgsConstructor
-@Data
+@NoArgsConstructor
 public class CreateGroupResponse {
-    public String name;
+    private String name;
 }
