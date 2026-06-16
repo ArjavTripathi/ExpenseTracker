@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +39,8 @@ public class ExpenseService {
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
         List<ExpenseParticipants> allParticipants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
-        return allParticipants.stream().map(ExpenseParticipantsDTO::new).collect(java.util.stream.Collectors.toList());
+        return allParticipants.stream()
+                .map(p -> new ExpenseParticipantsDTO(p.getUser().getName(), p.getAmount()))
+                .collect(Collectors.toList());
     }
 }
