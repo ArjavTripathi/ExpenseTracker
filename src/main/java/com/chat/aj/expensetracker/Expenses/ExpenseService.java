@@ -3,12 +3,15 @@ package com.chat.aj.expensetracker.Expenses;
 import com.chat.aj.expensetracker.Expenses.DTO.ExpenseParticipantsDTO;
 import com.chat.aj.expensetracker.Expenses.DTO.ExpenseReturnDTO;
 import com.chat.aj.expensetracker.Groups.GroupService;
+import com.chat.aj.expensetracker.common.Entities.ExpenseParticipants;
 import com.chat.aj.expensetracker.common.Entities.ExpenseParticipantsRepository;
 import com.chat.aj.expensetracker.common.Entities.Expenses;
 import com.chat.aj.expensetracker.common.Entities.ExpensesRepository;
 import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,5 +33,11 @@ public class ExpenseService {
         );
     }
 
-    public List<ExpenseParticipantsDTO>
+    public List<ExpenseParticipantsDTO> getExpenseParticipants(Long groupId, Long expenseId) {
+        groupService.findGroupById(groupId);
+        Expenses expense = expensesRepository.findExpenseById(expenseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
+        List<ExpenseParticipants> allParticipants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
+        return allParticipants.stream().map(ExpenseParticipantsDTO::new).collect(java.util.stream.Collectors.toList());
+    }
 }
