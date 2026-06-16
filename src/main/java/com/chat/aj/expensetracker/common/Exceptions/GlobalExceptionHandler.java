@@ -17,15 +17,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGeneric(
-            Exception ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                500, "Internal Server Error", ex.getMessage(), request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-    }
-
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(
             ResourceNotFoundException ex, HttpServletRequest request) {
@@ -46,10 +37,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(
-            UnauthorizedException ex, HttpServletRequest request) {
+            ConflictException ex, HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(
                 409, "Conflict", ex.getMessage(), request.getRequestURI()
         );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneric(
+            Exception ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                500, "Internal Server Error", ex.getMessage(), request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }

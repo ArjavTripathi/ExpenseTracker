@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface GroupMembersRepository extends CrudRepository<GroupMembers, Long> {
     Optional<GroupMembers> findByGroupAndMember(Group group, User member);
     List<GroupMembers> findByMember(User member);
+    List<GroupMembers> findByGroup(Group group);
 }

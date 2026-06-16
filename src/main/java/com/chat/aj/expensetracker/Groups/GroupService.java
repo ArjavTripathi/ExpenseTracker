@@ -129,4 +129,19 @@ public class GroupService {
         GroupMembers target = findGroupMemberInGroup(group, toRemove);
         groupMembersRepository.delete(target);
     }
+
+    public void deleteGroup(Long groupId, String email) {
+        Group group = findGroupById(groupId);
+        User owner = userService.findUserByEmail(email);
+
+        if(!group.getOwner().equals(owner)){
+            throw new UnauthorizedException("You are not the owner.");
+        }
+
+        List<GroupMembers> toDelete = groupMembersRepository.findByGroup(group);
+        groupMembersRepository.deleteAll(toDelete);
+
+        groupRepository.delete(group);
+    }
+
 }

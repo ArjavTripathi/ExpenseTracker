@@ -35,6 +35,12 @@ public class GroupController {
         return ResponseEntity.ok(group);
     }
 
+    @DeleteMapping
+    public ResponseEntity<String> deleteGroup(@RequestParam Long groupId, Principal principal){
+        groupService.deleteGroup(groupId, principal.getName());
+        return ResponseEntity.ok("Success!");
+    }
+
     @GetMapping("/me")
     public ResponseEntity<List<GroupDTO>> getMyGroups(Principal principal){
         List<GroupDTO> group = groupService.getMyGroups(principal.getName());
@@ -46,6 +52,8 @@ public class GroupController {
         groupService.removeUser(groupId, email, principal.getName());
         return ResponseEntity.ok("Success!");
     }
+
+
 
 
 }
