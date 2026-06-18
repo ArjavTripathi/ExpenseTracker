@@ -35,6 +35,11 @@ public class GroupService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find user in group"));
     }
 
+    public boolean isGroupMember(Group group, User user){
+        return group.getOwner().equals(user) ||
+               groupMembersRepository.findByGroupAndMember(group, user).isPresent();
+    }
+
     public void createGroup(CreateGroupResponse newGroup, String email) {
 
         User owner = userService.findUserByEmail(email);

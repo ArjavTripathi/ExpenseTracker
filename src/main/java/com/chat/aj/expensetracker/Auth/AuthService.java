@@ -32,6 +32,11 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find user"));
     }
 
+    public User findUserById(Long id){
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cannot find user"));
+    }
+
 
     public JWTAuthenticationResponse Login(LoginRequest login){
         Authentication authentication = authenticationManager.authenticate(

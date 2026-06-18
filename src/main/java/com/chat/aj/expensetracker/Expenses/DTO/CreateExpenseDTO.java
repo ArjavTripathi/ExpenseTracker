@@ -11,6 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreateExpenseDTO {
+    private Long groupId;
     private BigDecimal totalAmount;
     private String description;
     private List<ParticipantShareDTO> participants;
