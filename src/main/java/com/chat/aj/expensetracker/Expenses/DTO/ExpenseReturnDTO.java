@@ -12,9 +12,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ExpenseReturnDTO {
-    public User user;
-    public String description;
-    public BigDecimal amount;
-    public LocalDateTime created_at;
+    private User user;
+    private String description;
+    private BigDecimal amount;
+    private LocalDateTime created_at;
 
 }
