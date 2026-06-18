@@ -3,13 +3,12 @@ package com.chat.aj.expensetracker.Expenses;
 import com.chat.aj.expensetracker.Expenses.DTO.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/expenses")
 public class ExpenseController {

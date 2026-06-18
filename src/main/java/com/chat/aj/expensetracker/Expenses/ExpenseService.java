@@ -7,9 +7,11 @@ import com.chat.aj.expensetracker.common.Entities.*;
 import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
 import com.chat.aj.expensetracker.common.Exceptions.UnauthorizedException;
 import jakarta.transaction.Transactional;
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +30,14 @@ public class ExpenseService {
         if (!groupService.isGroupMember(group, caller)) {
             throw new UnauthorizedException("You are not a member of this group");
         }
+        BigDecimal totalShares = dto.getParticipants().stream()
+                .map(ParticipantShareDTO::getShareAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (totalShares.compareTo(dto.getTotalAmount()) != 0) {
+            throw new ValidationException("Participant shares must equal total amount");
+        }
+
         Expenses expense = new Expenses();
         expense.setGroup(group);
         expense.setUser(caller);
@@ -82,6 +92,13 @@ public class ExpenseService {
         if (!expense.getUser().equals(caller)) {
             throw new UnauthorizedException("Only the expense creator can update this expense");
         }
+        BigDecimal totalShares = dto.getParticipants().stream()
+                .map(ParticipantShareDTO::getShareAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (totalShares.compareTo(dto.getTotalAmount()) != 0) {
+            throw new ValidationException("Participant shares must equal total amount");
+        }
         expense.setAmount(dto.getTotalAmount());
         expense.setDescription(dto.getDescription());
         expensesRepository.save(expense);
@@ -113,13 +130,4 @@ public class ExpenseService {
         expensesRepository.delete(expense);
     }
 
-    public void deleteExpenseParticipantByUser(User user, Long groupId, Long expenseId) {
-        groupService.findGroupById(groupId);
-        List<ExpenseParticipants> fullList = expenseParticipantsRepository.findExpenseParticipantsByUserAndExpenses(
-                user,
-                expensesRepository.findExpenseById(expenseId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"))
-        );
-        expenseParticipantsRepository.deleteAll(fullList);
-    }
 }
