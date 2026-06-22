@@ -15,7 +15,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/api/algorithm")
 public class AlgorithmController {
-    public final Preprocessing preprocessing;
+    public final Algorithm preprocessing;
 
     @GetMapping("/preprocessed")
     public ResponseEntity<Map<String, BigDecimal>> getPreprocessedData(@RequestParam Long groupId) {

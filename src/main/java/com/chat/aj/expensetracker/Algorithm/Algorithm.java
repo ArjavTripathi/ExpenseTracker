@@ -9,11 +9,12 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class Preprocessing {
+public class Algorithm {
     public final ExpensesRepository expensesRepository;
     public final ExpenseParticipantsRepository expenseParticipantsRepository;
     public final GroupMembersRepository groupMembersRepository;
@@ -47,13 +48,41 @@ public class Preprocessing {
                                     BigDecimal::add
                             ));
                 });
-        //For Controller Ease of User
+        //For Ease of User while testing
         return map.entrySet().stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getKey().getName(), // Extracts the name as the new key
                         Map.Entry::getValue,
                         BigDecimal::add
                 ));
+    }
+
+    public Graph algorithm(Map<User, BigDecimal> map){
+        Graph graph = new Graph();
+
+        PriorityQueue<Map.Entry<User, BigDecimal>> creditors =
+                new PriorityQueue<>((a, b) -> b.getValue().compareTo(a.getValue()));
+
+        PriorityQueue<Map.Entry<User, BigDecimal>> debtors =
+                new PriorityQueue<>((a, b) -> a.getValue().compareTo(b.getValue()));
+
+        for (Map.Entry<User, BigDecimal> entry : map.entrySet()) {
+            if(entry.getValue().compareTo(BigDecimal.ZERO) > 0) {
+                creditors.add(entry);
+            } else if(entry.getValue().compareTo(BigDecimal.ZERO) < 0) {
+                debtors.add(entry);
+            }
+        }
+
+        while(!creditors.isEmpty() && !debtors.isEmpty()){
+            User debtor = debtors.poll().getKey();
+            User creditor = creditors.poll().getKey();
+            Node debtorNode = new Node(debtor.getName());
+            Node creditorNode = new Node(creditor.getName());
+
+        }
+
+        return graph;
     }
 
 }
