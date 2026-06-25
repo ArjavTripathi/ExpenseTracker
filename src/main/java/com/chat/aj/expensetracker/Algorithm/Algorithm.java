@@ -93,8 +93,8 @@ public class Algorithm {
 
 
 
-    public Graph algorithm(Map<User, BigDecimal> map){
-        Graph graph = new Graph();
+    public List<Edge> algorithm(Map<User, BigDecimal> map) {
+        List<Edge> settlements = new ArrayList<>();
 
         PriorityQueue<Map.Entry<User, BigDecimal>> creditors =
                 new PriorityQueue<>((a, b) -> b.getValue().compareTo(a.getValue()));
@@ -103,55 +103,44 @@ public class Algorithm {
                 new PriorityQueue<>(Map.Entry.comparingByValue());
 
         for (Map.Entry<User, BigDecimal> entry : map.entrySet()) {
-            if(entry.getValue().compareTo(BigDecimal.ZERO) > 0) {
-                creditors.add(entry);
-            } else if(entry.getValue().compareTo(BigDecimal.ZERO) < 0) {
-                debtors.add(entry);
+            if (entry.getValue().compareTo(BigDecimal.ZERO) > 0) {
+                creditors.offer(entry);
+            } else if (entry.getValue().compareTo(BigDecimal.ZERO) < 0) {
+                debtors.offer(entry);
             }
         }
 
-        while(!creditors.isEmpty() && !debtors.isEmpty()){
-            User debtor = debtors.peek().getKey();
-            User creditor = creditors.peek().getKey();
-            Node d = new Node(debtor.getName());
-            Node c = new Node(creditor.getName());
+        while (!creditors.isEmpty() && !debtors.isEmpty()) {
+            Map.Entry<User, BigDecimal> creditorEntry = creditors.poll();
+            Map.Entry<User, BigDecimal> debtorEntry = debtors.poll();
 
-            if(map.get(creditor).compareTo(map.get(debtor).abs()) == 0){
-                graph.addEdge(new Edge(new Node(graph, debtor.getName()), new Node(graph, creditor.getName()), map.get(creditor)));
+            User creditor = creditorEntry.getKey();
+            User debtor = debtorEntry.getKey();
 
-                debtors.poll();
+            BigDecimal creditorBalance = creditorEntry.getValue();
+            BigDecimal debtorBalance = debtorEntry.getValue().abs();
 
-                creditors.poll();
-            } else if(map.get(creditor).compareTo(map.get(debtor).abs()) > 0) {
-                map.put(creditor, map.get(creditor).subtract(map.get(debtor).abs()));
+            BigDecimal settlementAmount = creditorBalance.min(debtorBalance);
 
-                BigDecimal debtorBalance = debtors.poll().getValue().abs();
-                BigDecimal newCreditorBalance = creditors.poll().getValue().subtract(debtorBalance);
+            settlements.add(new Edge(
+                    new Node(debtor.getName()),
+                    new Node(creditor.getName()),
+                    settlementAmount
+            ));
 
-                graph.addEdge(new Edge(new Node(graph, debtor.getName()), new Node(graph, creditor.getName()), debtorBalance));
+            BigDecimal newCreditorBalance = creditorBalance.subtract(settlementAmount);
+            BigDecimal newDebtorBalance = debtorBalance.subtract(settlementAmount);
 
+            if (newCreditorBalance.compareTo(BigDecimal.ZERO) > 0) {
+                creditors.offer(Map.entry(creditor, newCreditorBalance));
+            }
 
-                if (newCreditorBalance.compareTo(BigDecimal.ZERO) > 0) {
-                    creditors.offer(Map.entry(creditor, newCreditorBalance));
-                }
-
-            } else {
-                map.put(debtor, map.get(debtor).add(map.get(creditor)));
-
-
-                BigDecimal creditorBalance = creditors.poll().getValue();
-                BigDecimal debtorBalance = debtors.poll().getValue().add(creditorBalance);
-
-                graph.addEdge(new Edge(new Node(graph, debtor.getName()), new Node(graph, creditor.getName()), creditorBalance));
-
-                if (debtorBalance.compareTo(BigDecimal.ZERO) < 0) {
-                    debtors.offer(Map.entry(debtor, debtorBalance));
-                }
-
+            if (newDebtorBalance.compareTo(BigDecimal.ZERO) > 0) {
+                debtors.offer(Map.entry(debtor, newDebtorBalance.negate()));
             }
         }
 
-        return graph;
+        return settlements;
     }
 
 }

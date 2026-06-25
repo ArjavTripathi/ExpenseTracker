@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -25,7 +26,7 @@ public class AlgorithmController {
     }
 
     @GetMapping("/algorithm")
-    public ResponseEntity<Graph> runAlgorithm(@RequestParam Long groupId){
+    public ResponseEntity<List<Edge>> runAlgorithm(@RequestParam Long groupId){
         Map<User, BigDecimal> netBalances = preprocessing.preprocess(groupId);
         return ResponseEntity.ok(preprocessing.algorithm(netBalances));
     }
