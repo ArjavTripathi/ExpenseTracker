@@ -2,32 +2,19 @@ package com.chat.aj.expensetracker.Algorithm;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 public class Graph {
-    private Node head;
-    private ArrayList<Edge> edges;
-    private ArrayList<Node> nodes;
+    private final List<Edge> settlements = new ArrayList<>();
 
-    public void addNode(Node node) {
-        if (nodes == null) {
-            nodes = new ArrayList<>();
-        }
-        nodes.add(node);
-    }
-
-    public void addEdge(Edge edge){
-        if(edges == null) {
-            edges = new ArrayList<>();
-        }
-        edges.add(edge);
+    public void addSettlement(Edge edge) {
+        settlements.add(edge);
     }
 
 }
