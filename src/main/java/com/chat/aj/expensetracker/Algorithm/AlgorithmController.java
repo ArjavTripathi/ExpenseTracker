@@ -1,5 +1,6 @@
 package com.chat.aj.expensetracker.Algorithm;
 
+import com.chat.aj.expensetracker.Algorithm.DTO.SettlementDTO;
 import com.chat.aj.expensetracker.common.Entities.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,9 +26,12 @@ public class AlgorithmController {
         return ResponseEntity.ok(finalBalances);
     }
 
-    @GetMapping("/algorithm")
-    public ResponseEntity<List<Edge>> runAlgorithm(@RequestParam Long groupId){
+    @GetMapping
+    public ResponseEntity<List<SettlementDTO>> runAlgorithm(@RequestParam Long groupId){
         Map<User, BigDecimal> netBalances = preprocessing.preprocess(groupId);
-        return ResponseEntity.ok(preprocessing.algorithm(netBalances));
+        List<SettlementDTO> settlements = preprocessing.algorithm(netBalances).stream()
+                .map(SettlementDTO::new)
+                .toList();
+        return ResponseEntity.ok(settlements);
     }
 }
