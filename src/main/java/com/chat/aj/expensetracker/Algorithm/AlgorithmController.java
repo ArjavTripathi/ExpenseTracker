@@ -23,4 +23,10 @@ public class AlgorithmController {
         Map<String, BigDecimal> finalBalances = preprocessing.getBalances(netBalances, groupId);
         return ResponseEntity.ok(finalBalances);
     }
+
+    @GetMapping("/algorithm")
+    public ResponseEntity<Graph> runAlgorithm(@RequestParam Long groupId){
+        Map<User, BigDecimal> netBalances = preprocessing.preprocess(groupId);
+        return ResponseEntity.ok(preprocessing.algorithm(netBalances));
+    }
 }

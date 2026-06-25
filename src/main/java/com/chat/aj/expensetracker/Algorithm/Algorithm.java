@@ -17,6 +17,9 @@ public class Algorithm {
     public final GroupMembersRepository groupMembersRepository;
     public final GroupService groupService;
 
+    /*
+    Modular testing class for checking if hashmap populates group members correctly
+     */
     public Map<User, BigDecimal> populateMap(Long groupId) {
         HashMap<User, BigDecimal> netBalances = new HashMap<>();
         Group group = groupService.findGroupById(groupId);
@@ -28,7 +31,9 @@ public class Algorithm {
 
         return netBalances;
     }
-
+    /*
+    Modular testing class to check if hashmap updates balances correctly
+     */
     public Map<String, BigDecimal> getBalances(Map<User, BigDecimal> map, Long groupId) {
         List<Expenses> expenses = expensesRepository.findByGroup(groupService.findGroupById(groupId));
         expenses.stream()
@@ -52,6 +57,38 @@ public class Algorithm {
                         Map.Entry::getValue,
                         BigDecimal::add
                 ));
+    }
+
+    public Map<User, BigDecimal> preprocess(Long groupId){
+
+        HashMap<User, BigDecimal> netBalances = new HashMap<>();
+        List<Expenses> expenses = expensesRepository.findByGroup(groupService.findGroupById(groupId));
+
+        Group group = groupService.findGroupById(groupId);
+        List<GroupMembers> members = groupMembersRepository.findByGroup(group);
+        netBalances.put(group.getOwner(), BigDecimal.ZERO);
+        netBalances.putAll(members.stream()
+                .map(GroupMembers::getMember)
+                .collect(Collectors.toMap(u -> u, u -> BigDecimal.ZERO)));
+
+
+        expenses.stream()
+                .filter(exp -> exp.getAmount() != null) // Operation 1: Filter out bad data
+                .forEach(exp -> {
+                    netBalances.merge(exp.getUser(), exp.getAmount(), BigDecimal::add);
+                    List<ExpenseParticipants> expPart = expenseParticipantsRepository.findExpenseParticipantsByExpenses(exp);
+                    if(expPart.isEmpty()) return;
+                    expPart.stream()
+                            .filter(ep -> ep.getUser() != null && ep.getAmount() != null)
+                            .forEach(ep -> netBalances.merge(
+                                    ep.getUser(),
+                                    ep.getAmount().negate(),
+                                    BigDecimal::add
+                            ));
+                });
+
+        return netBalances;
+
     }
 
 
