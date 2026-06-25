@@ -16,4 +16,9 @@ public class Node {
     public Node(String personName) {
         this.personName = personName;
     }
+
+    public Node(Graph graph, String personName) {
+        this.personName = personName;
+        graph.addNode(this);
+    }
 }

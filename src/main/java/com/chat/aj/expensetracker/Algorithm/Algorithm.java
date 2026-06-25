@@ -6,10 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -57,6 +54,8 @@ public class Algorithm {
                 ));
     }
 
+
+
     public Graph algorithm(Map<User, BigDecimal> map){
         Graph graph = new Graph();
 
@@ -64,7 +63,7 @@ public class Algorithm {
                 new PriorityQueue<>((a, b) -> b.getValue().compareTo(a.getValue()));
 
         PriorityQueue<Map.Entry<User, BigDecimal>> debtors =
-                new PriorityQueue<>((a, b) -> a.getValue().compareTo(b.getValue()));
+                new PriorityQueue<>(Map.Entry.comparingByValue());
 
         for (Map.Entry<User, BigDecimal> entry : map.entrySet()) {
             if(entry.getValue().compareTo(BigDecimal.ZERO) > 0) {
@@ -75,11 +74,48 @@ public class Algorithm {
         }
 
         while(!creditors.isEmpty() && !debtors.isEmpty()){
-            User debtor = debtors.poll().getKey();
-            User creditor = creditors.poll().getKey();
-            Node debtorNode = new Node(debtor.getName());
-            Node creditorNode = new Node(creditor.getName());
+            User debtor = debtors.peek().getKey();
+            User creditor = creditors.peek().getKey();
+            Node d = new Node(debtor.getName());
+            Node c = new Node(creditor.getName());
 
+            if(map.get(creditor).compareTo(map.get(debtor).abs()) == 0){
+                graph.addEdge(new Edge(new Node(graph, debtor.getName()), new Node(graph, creditor.getName()), map.get(creditor)));
+
+                debtors.poll();
+
+                creditors.poll();
+            } else if(map.get(creditor).compareTo(map.get(debtor).abs()) > 0) {
+                map.put(creditor, map.get(creditor).subtract(map.get(debtor).abs()));
+
+                BigDecimal debtorBalance = debtors.poll().getValue().abs();
+                BigDecimal newCreditorBalance = creditors.poll().getValue().subtract(debtorBalance);
+
+                graph.addEdge(new Edge(new Node(graph, debtor.getName()), new Node(graph, creditor.getName()), debtorBalance));
+
+
+                if (newCreditorBalance.compareTo(BigDecimal.ZERO) > 0) {
+                    creditors.offer(Map.entry(creditor, newCreditorBalance));
+                }
+                debtors.poll();
+
+            } else {
+                map.put(debtor, map.get(debtor).add(map.get(creditor)));
+
+                Edge e = new Edge(d, c, map.get(debtor));
+                graph.addEdge(e);
+
+                BigDecimal creditorBalance = creditors.poll().getValue();
+                BigDecimal debtorBalance = debtors.poll().getValue().add(creditorBalance);
+
+                graph.addEdge(new Edge(new Node(graph, debtor.getName()), new Node(graph, creditor.getName()), creditorBalance));
+
+                if (debtorBalance.compareTo(BigDecimal.ZERO) < 0) {
+                    debtors.offer(Map.entry(debtor, debtorBalance));
+                }
+
+                creditors.poll();
+            }
         }
 
         return graph;

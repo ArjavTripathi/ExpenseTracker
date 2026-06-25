@@ -15,4 +15,19 @@ public class Graph {
     private Node head;
     private ArrayList<Edge> edges;
     private ArrayList<Node> nodes;
+
+    public void addNode(Node node) {
+        if (nodes == null) {
+            nodes = new ArrayList<>();
+        }
+        nodes.add(node);
+    }
+
+    public void addEdge(Edge edge){
+        if(edges == null) {
+            edges = new ArrayList<>();
+        }
+        edges.add(edge);
+    }
+
 }
