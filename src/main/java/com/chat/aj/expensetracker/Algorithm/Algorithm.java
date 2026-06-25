@@ -134,13 +134,10 @@ public class Algorithm {
                 if (newCreditorBalance.compareTo(BigDecimal.ZERO) > 0) {
                     creditors.offer(Map.entry(creditor, newCreditorBalance));
                 }
-                debtors.poll();
 
             } else {
                 map.put(debtor, map.get(debtor).add(map.get(creditor)));
 
-                Edge e = new Edge(d, c, map.get(debtor));
-                graph.addEdge(e);
 
                 BigDecimal creditorBalance = creditors.poll().getValue();
                 BigDecimal debtorBalance = debtors.poll().getValue().add(creditorBalance);
@@ -151,7 +148,6 @@ public class Algorithm {
                     debtors.offer(Map.entry(debtor, debtorBalance));
                 }
 
-                creditors.poll();
             }
         }
 
