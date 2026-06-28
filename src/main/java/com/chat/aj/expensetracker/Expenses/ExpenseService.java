@@ -3,12 +3,14 @@ package com.chat.aj.expensetracker.Expenses;
 import com.chat.aj.expensetracker.Auth.AuthService;
 import com.chat.aj.expensetracker.Expenses.DTO.*;
 import com.chat.aj.expensetracker.Groups.GroupService;
+import com.chat.aj.expensetracker.Websockets.DTO.NotificationsDTO;
 import com.chat.aj.expensetracker.common.Entities.*;
 import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
 import com.chat.aj.expensetracker.common.Exceptions.UnauthorizedException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -23,6 +25,7 @@ public class ExpenseService {
     private final AuthService authService;
     private final ExpenseParticipantsRepository expenseParticipantsRepository;
     private final ExpensesRepository expensesRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public void createExpense(CreateExpenseDTO dto, String callerEmail) {
         Group group = groupService.findGroupById(dto.getGroupId());
@@ -54,6 +57,11 @@ public class ExpenseService {
             ep.setAmount(p.getShareAmount());
             expenseParticipantsRepository.save(ep);
         }
+
+        messagingTemplate.convertAndSend(
+                "/topic/group/" + dto.getGroupId(),
+                new NotificationsDTO("EXPENSE_ADDED", "A new expense was added", dto.getGroupId())
+        );
     }
 
     public List<GetExpenseDTO> getAllExpenses(Long groupId, String callerEmail) {
@@ -114,6 +122,11 @@ public class ExpenseService {
             ep.setAmount(p.getShareAmount());
             expenseParticipantsRepository.save(ep);
         }
+
+        messagingTemplate.convertAndSend(
+                "/topic/group/" + dto.getGroupId(),
+                new NotificationsDTO("EXPENSE_UPDATED", "An existing expense was updated", dto.getGroupId())
+        );
     }
 
     @Transactional
@@ -128,6 +141,10 @@ public class ExpenseService {
         List<ExpenseParticipants> participants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
         expenseParticipantsRepository.deleteAll(participants);
         expensesRepository.delete(expense);
+        messagingTemplate.convertAndSend(
+                "/topic/group/" + groupId,
+                new NotificationsDTO("EXPENSE_DELETED", "An expense was deleted", groupId)
+        );
     }
 
 }

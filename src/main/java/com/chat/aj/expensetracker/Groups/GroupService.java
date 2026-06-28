@@ -4,12 +4,14 @@ import com.chat.aj.expensetracker.Auth.AuthService;
 import com.chat.aj.expensetracker.Groups.DTOs.AddMemberResponse;
 import com.chat.aj.expensetracker.Groups.DTOs.CreateGroupResponse;
 import com.chat.aj.expensetracker.Groups.DTOs.GroupDTO;
+import com.chat.aj.expensetracker.Websockets.DTO.NotificationsDTO;
 import com.chat.aj.expensetracker.common.Entities.*;
 import com.chat.aj.expensetracker.common.Exceptions.ConflictException;
 import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
 import com.chat.aj.expensetracker.common.Exceptions.UnauthorizedException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -24,6 +26,7 @@ public class GroupService {
     private GroupRepository groupRepository;
     private AuthService userService;
     private GroupMembersRepository groupMembersRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public Group findGroupById(Long id){
         return groupRepository.findById(id)
@@ -73,6 +76,11 @@ public class GroupService {
         groupMembers.setMember(newUser);
         groupMembersRepository.save(groupMembers);
 
+        messagingTemplate.convertAndSend(
+                "/topic/group/" + newMember.getGroupId(),
+                new NotificationsDTO("MEMBER_ADDED", "A new member was added to the group", newMember.getGroupId())
+        );
+
     }
 
     @Transactional
@@ -86,7 +94,6 @@ public class GroupService {
         
         return new GroupDTO(group.getName(), group.getOwner().getName(), memberNames);
     }
-
 
     public List<GroupDTO> getMyGroups(String name) {
         User user = userService.findUserByEmail(name);
@@ -133,6 +140,10 @@ public class GroupService {
 
         GroupMembers target = findGroupMemberInGroup(group, toRemove);
         groupMembersRepository.delete(target);
+        messagingTemplate.convertAndSend(
+                "/topic/group/" + groupId,
+                new NotificationsDTO("MEMBER_REMOVED", "A member was removed from the group", groupId)
+        );
     }
 
     public void deleteGroup(Long groupId, String email) {
@@ -142,10 +153,12 @@ public class GroupService {
         if(!group.getOwner().equals(owner)){
             throw new UnauthorizedException("You are not the owner.");
         }
-
+        messagingTemplate.convertAndSend(
+                "/topic/group/" + groupId,
+                new NotificationsDTO("GROUP_DELETED", "The group was deleted", groupId)
+        );
         List<GroupMembers> toDelete = groupMembersRepository.findByGroup(group);
         groupMembersRepository.deleteAll(toDelete);
-
         groupRepository.delete(group);
     }
 
