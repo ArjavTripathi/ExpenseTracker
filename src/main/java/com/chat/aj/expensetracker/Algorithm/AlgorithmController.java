@@ -17,21 +17,18 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/api/algorithm")
 public class AlgorithmController {
-    public final Algorithm preprocessing;
+    public final Algorithm algorithm;
 
     @GetMapping("/preprocessed")
     public ResponseEntity<Map<String, BigDecimal>> getPreprocessedData(@RequestParam Long groupId) {
-        Map<User, BigDecimal> netBalances = preprocessing.populateMap(groupId);
-        Map<String, BigDecimal> finalBalances = preprocessing.getBalances(netBalances, groupId);
+        Map<User, BigDecimal> netBalances = algorithm.populateMap(groupId);
+        Map<String, BigDecimal> finalBalances = algorithm.getBalances(netBalances, groupId);
         return ResponseEntity.ok(finalBalances);
     }
 
     @GetMapping
     public ResponseEntity<List<SettlementDTO>> runAlgorithm(@RequestParam Long groupId){
-        Map<User, BigDecimal> netBalances = preprocessing.preprocess(groupId);
-        List<SettlementDTO> settlements = preprocessing.algorithm(netBalances).stream()
-                .map(SettlementDTO::new)
-                .toList();
+        List<SettlementDTO> settlements = algorithm.getOrComputeCache(groupId);
         return ResponseEntity.ok(settlements);
     }
 }
