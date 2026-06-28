@@ -1,5 +1,6 @@
 package com.chat.aj.expensetracker.Expenses;
 
+import com.chat.aj.expensetracker.Algorithm.Algorithm;
 import com.chat.aj.expensetracker.Auth.AuthService;
 import com.chat.aj.expensetracker.Expenses.DTO.*;
 import com.chat.aj.expensetracker.Groups.GroupService;
@@ -26,6 +27,7 @@ public class ExpenseService {
     private final ExpenseParticipantsRepository expenseParticipantsRepository;
     private final ExpensesRepository expensesRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final Algorithm algorithm;
 
     public void createExpense(CreateExpenseDTO dto, String callerEmail) {
         Group group = groupService.findGroupById(dto.getGroupId());
@@ -62,6 +64,8 @@ public class ExpenseService {
                 "/topic/group/" + dto.getGroupId(),
                 new NotificationsDTO("EXPENSE_ADDED", "A new expense was added", dto.getGroupId())
         );
+
+        algorithm.invalidateCache(dto.getGroupId());
     }
 
     public List<GetExpenseDTO> getAllExpenses(Long groupId, String callerEmail) {
@@ -127,6 +131,8 @@ public class ExpenseService {
                 "/topic/group/" + dto.getGroupId(),
                 new NotificationsDTO("EXPENSE_UPDATED", "An existing expense was updated", dto.getGroupId())
         );
+
+        algorithm.invalidateCache(dto.getGroupId());
     }
 
     @Transactional
@@ -145,6 +151,7 @@ public class ExpenseService {
                 "/topic/group/" + groupId,
                 new NotificationsDTO("EXPENSE_DELETED", "An expense was deleted", groupId)
         );
+        algorithm.invalidateCache(groupId);
     }
 
 }

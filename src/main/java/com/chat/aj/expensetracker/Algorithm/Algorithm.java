@@ -1,5 +1,6 @@
 package com.chat.aj.expensetracker.Algorithm;
 
+import com.chat.aj.expensetracker.Algorithm.DTO.SettlementDTO;
 import com.chat.aj.expensetracker.Groups.GroupService;
 import com.chat.aj.expensetracker.common.Entities.*;
 import lombok.RequiredArgsConstructor;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -16,6 +18,7 @@ public class Algorithm {
     public final ExpenseParticipantsRepository expenseParticipantsRepository;
     public final GroupMembersRepository groupMembersRepository;
     public final GroupService groupService;
+    private final ConcurrentHashMap<Long, List<SettlementDTO>> cache = new ConcurrentHashMap<>();
 
     /*
     Modular testing class for checking if hashmap populates group members correctly
@@ -91,8 +94,6 @@ public class Algorithm {
 
     }
 
-
-
     public List<Edge> algorithm(Map<User, BigDecimal> map) {
         List<Edge> settlements = new ArrayList<>();
 
@@ -143,4 +144,16 @@ public class Algorithm {
         return settlements;
     }
 
+    public List<SettlementDTO> getOrComputeCache(Long groupId){
+        return cache.computeIfAbsent(groupId, id -> {
+            Map<User, BigDecimal> netBalances = preprocess(id);
+            return algorithm(netBalances).stream()
+                    .map(SettlementDTO::new)
+                    .toList();
+        });
+    }
+
+    public void invalidateCache(Long groupId) {
+        cache.remove(groupId);
+    }
 }
