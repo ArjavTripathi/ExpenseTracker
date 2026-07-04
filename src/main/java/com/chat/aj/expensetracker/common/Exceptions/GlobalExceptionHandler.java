@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGeneric(
             Exception ex, HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(
-                500, "Internal Server Error", ex.getMessage(), request.getRequestURI()
+                500, "Internal Server Error", "An unexpected error occurred", request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }

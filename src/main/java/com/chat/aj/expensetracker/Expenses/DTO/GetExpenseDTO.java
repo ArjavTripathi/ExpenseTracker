@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
@@ -12,6 +13,8 @@ import java.math.BigDecimal;
 public class GetExpenseDTO {
     private Long id;
     private String description;
-    private BigDecimal amount;
+    private BigDecimal totalAmount;
+    private Long payerId;
     private String payerName;
+    private LocalDateTime createdAt;
 }

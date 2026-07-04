@@ -19,17 +19,21 @@ import java.util.List;
 public class Group {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long group_id;
+    private Long groupId;
 
     private String name;
 
-    private LocalDateTime created_at;
+    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnoreProperties({"email", "password", "verified", "created_at", "owned_groups"})
+    @JsonIgnoreProperties({"email", "password", "verified", "createdAt", "ownedGroups"})
     private User owner;
 
     @OneToMany(mappedBy = "group")
-    public List<GroupMembers> members;
+    private List<GroupMembers> members;
+
+    public Long getId() {
+        return groupId;
+    }
 }

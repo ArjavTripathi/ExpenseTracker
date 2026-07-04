@@ -12,7 +12,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode
+@EqualsAndHashCode(of = "id")
 @Table(name = "users")
 public class User {
     @Id
@@ -26,13 +26,13 @@ public class User {
 
     private String password;
 
-    private LocalDateTime created_at;
+    private LocalDateTime createdAt;
 
     private boolean verified;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("owner")
-    private List<Group> owned_groups;
+    private List<Group> ownedGroups;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("user")
@@ -44,5 +44,5 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("user")
-    private List<ExpenseParticipants> expense_participant;
+    private List<ExpenseParticipants> expenseParticipants;
 }

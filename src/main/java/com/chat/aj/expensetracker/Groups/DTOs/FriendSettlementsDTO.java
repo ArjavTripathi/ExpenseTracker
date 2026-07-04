@@ -1,4 +1,4 @@
-package com.chat.aj.expensetracker.Expenses.DTO;
+package com.chat.aj.expensetracker.Groups.DTOs;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ExpenseParticipantsDTO {
-    private Long userId;
-    private BigDecimal shareAmount;
+public class FriendSettlementsDTO {
+    private String friend;
+    private BigDecimal amount;
 }

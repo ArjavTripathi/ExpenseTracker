@@ -19,20 +19,20 @@ public class AccountDetails implements UserDetails {
     @Serial
     private static final long serialVersionUID = 1L;
     private Long id;
+    private String name;
     private String email;
-    private String username;
     private String password;
     private Collection<? extends GrantedAuthority> authorities;
 
-    public AccountDetails(Long id, String username, String password, String email, Collection<? extends GrantedAuthority> authorities) {
+    public AccountDetails(Long id, String name, String password, String email, Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
-        this.username = username;
+        this.name = name;
         this.password = password;
         this.email = email;
         this.authorities = authorities;
     }
 
-    public static AccountDetails build(User acc){
+    public static AccountDetails build(User acc) {
         return new AccountDetails(
                 acc.getId(),
                 acc.getName(),

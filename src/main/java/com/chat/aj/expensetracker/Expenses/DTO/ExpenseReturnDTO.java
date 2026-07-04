@@ -12,9 +12,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ExpenseReturnDTO {
+    private Long groupId;
     private String payerName;
     private String description;
-    private BigDecimal amount;
+    private BigDecimal totalAmount;
     private LocalDateTime createdAt;
     private List<ExpenseParticipantsDTO> participants;
 }

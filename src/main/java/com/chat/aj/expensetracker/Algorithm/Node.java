@@ -8,11 +8,11 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class Node {
+    private Long id;
     private String personName;
 
-    public Node(String personName) {
+    public Node(Long id, String personName) {
+        this.id = id;
         this.personName = personName;
     }
-
-
 }

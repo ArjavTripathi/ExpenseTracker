@@ -1,8 +1,8 @@
 package com.chat.aj.expensetracker.Algorithm;
 
 import com.chat.aj.expensetracker.Algorithm.DTO.SettlementDTO;
-import com.chat.aj.expensetracker.Groups.GroupService;
 import com.chat.aj.expensetracker.common.Entities.*;
+import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,84 +14,79 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class Algorithm {
-    public final ExpensesRepository expensesRepository;
-    public final ExpenseParticipantsRepository expenseParticipantsRepository;
-    public final GroupMembersRepository groupMembersRepository;
-    public final GroupService groupService;
+    private final ExpensesRepository expensesRepository;
+    private final ExpenseParticipantsRepository expenseParticipantsRepository;
+    private final GroupMembersRepository groupMembersRepository;
+    private final GroupRepository groupRepository;
     private final ConcurrentHashMap<Long, List<SettlementDTO>> cache = new ConcurrentHashMap<>();
 
-    /*
-    Modular testing class for checking if hashmap populates group members correctly
-     */
-    public Map<User, BigDecimal> populateMap(Long groupId) {
-        HashMap<User, BigDecimal> netBalances = new HashMap<>();
-        Group group = groupService.findGroupById(groupId);
+    private Group findGroupById(Long groupId) {
+        return groupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cannot find group"));
+    }
+
+    private Map<User, BigDecimal> initBalanceMap(Group group) {
+        Map<User, BigDecimal> balances = new HashMap<>();
         List<GroupMembers> members = groupMembersRepository.findByGroup(group);
-        netBalances.put(group.getOwner(), BigDecimal.ZERO);
-        netBalances.putAll(members.stream()
+        balances.put(group.getOwner(), BigDecimal.ZERO);
+        balances.putAll(members.stream()
                 .map(GroupMembers::getMember)
                 .collect(Collectors.toMap(u -> u, u -> BigDecimal.ZERO)));
-
-        return netBalances;
+        return balances;
     }
-    /*
-    Modular testing class to check if hashmap updates balances correctly
-     */
+
+    public Map<User, BigDecimal> populateMap(Long groupId) {
+        return initBalanceMap(findGroupById(groupId));
+    }
+
     public Map<String, BigDecimal> getBalances(Map<User, BigDecimal> map, Long groupId) {
-        List<Expenses> expenses = expensesRepository.findByGroup(groupService.findGroupById(groupId));
+        Group group = findGroupById(groupId);
+        List<Expenses> expenses = expensesRepository.findByGroup(group);
+
+        Map<Long, List<ExpenseParticipants>> participantsByExpense = expenseParticipantsRepository
+                .findByExpensesGroup(group)
+                .stream()
+                .collect(Collectors.groupingBy(ep -> ep.getExpenses().getId()));
+
         expenses.stream()
-                .filter(exp -> exp.getAmount() != null) // Operation 1: Filter out bad data
+                .filter(exp -> exp.getAmount() != null)
                 .forEach(exp -> {
                     map.merge(exp.getUser(), exp.getAmount(), BigDecimal::add);
-                    List<ExpenseParticipants> expPart = expenseParticipantsRepository.findExpenseParticipantsByExpenses(exp);
-                    if(expPart.isEmpty()) return;
+                    List<ExpenseParticipants> expPart = participantsByExpense.getOrDefault(exp.getId(), List.of());
                     expPart.stream()
                             .filter(ep -> ep.getUser() != null && ep.getAmount() != null)
-                            .forEach(ep -> map.merge(
-                                    ep.getUser(),
-                                    ep.getAmount().negate(),
-                                    BigDecimal::add
-                            ));
+                            .forEach(ep -> map.merge(ep.getUser(), ep.getAmount().negate(), BigDecimal::add));
                 });
-        //For Ease of User while testing
+
         return map.entrySet().stream()
                 .collect(Collectors.toMap(
-                        entry -> entry.getKey().getName(), // Extracts the name as the new key
+                        entry -> entry.getKey().getName(),
                         Map.Entry::getValue,
                         BigDecimal::add
                 ));
     }
 
-    public Map<User, BigDecimal> preprocess(Long groupId){
+    public Map<User, BigDecimal> preprocess(Long groupId) {
+        Group group = findGroupById(groupId);
+        Map<User, BigDecimal> netBalances = initBalanceMap(group);
+        List<Expenses> expenses = expensesRepository.findByGroup(group);
 
-        HashMap<User, BigDecimal> netBalances = new HashMap<>();
-        List<Expenses> expenses = expensesRepository.findByGroup(groupService.findGroupById(groupId));
-
-        Group group = groupService.findGroupById(groupId);
-        List<GroupMembers> members = groupMembersRepository.findByGroup(group);
-        netBalances.put(group.getOwner(), BigDecimal.ZERO);
-        netBalances.putAll(members.stream()
-                .map(GroupMembers::getMember)
-                .collect(Collectors.toMap(u -> u, u -> BigDecimal.ZERO)));
-
+        Map<Long, List<ExpenseParticipants>> participantsByExpense = expenseParticipantsRepository
+                .findByExpensesGroup(group)
+                .stream()
+                .collect(Collectors.groupingBy(ep -> ep.getExpenses().getId()));
 
         expenses.stream()
-                .filter(exp -> exp.getAmount() != null) // Operation 1: Filter out bad data
+                .filter(exp -> exp.getAmount() != null)
                 .forEach(exp -> {
                     netBalances.merge(exp.getUser(), exp.getAmount(), BigDecimal::add);
-                    List<ExpenseParticipants> expPart = expenseParticipantsRepository.findExpenseParticipantsByExpenses(exp);
-                    if(expPart.isEmpty()) return;
+                    List<ExpenseParticipants> expPart = participantsByExpense.getOrDefault(exp.getId(), List.of());
                     expPart.stream()
                             .filter(ep -> ep.getUser() != null && ep.getAmount() != null)
-                            .forEach(ep -> netBalances.merge(
-                                    ep.getUser(),
-                                    ep.getAmount().negate(),
-                                    BigDecimal::add
-                            ));
+                            .forEach(ep -> netBalances.merge(ep.getUser(), ep.getAmount().negate(), BigDecimal::add));
                 });
 
         return netBalances;
-
     }
 
     public List<Edge> algorithm(Map<User, BigDecimal> map) {
@@ -124,8 +119,8 @@ public class Algorithm {
             BigDecimal settlementAmount = creditorBalance.min(debtorBalance);
 
             settlements.add(new Edge(
-                    new Node(debtor.getName()),
-                    new Node(creditor.getName()),
+                    new Node(debtor.getId(), debtor.getName()),
+                    new Node(creditor.getId(), creditor.getName()),
                     settlementAmount
             ));
 
@@ -144,7 +139,7 @@ public class Algorithm {
         return settlements;
     }
 
-    public List<SettlementDTO> getOrComputeCache(Long groupId){
+    public List<SettlementDTO> getOrComputeCache(Long groupId) {
         return cache.computeIfAbsent(groupId, id -> {
             Map<User, BigDecimal> netBalances = preprocess(id);
             return algorithm(netBalances).stream()

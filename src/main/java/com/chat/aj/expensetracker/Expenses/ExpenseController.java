@@ -10,36 +10,43 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/expenses")
+@RequestMapping("/api/groups/{groupId}/expenses")
 public class ExpenseController {
     private final ExpenseService expenseService;
 
+    @GetMapping
+    public ResponseEntity<List<GetExpenseDTO>> getAllExpenses(@PathVariable Long groupId, Principal principal) {
+        return ResponseEntity.ok(expenseService.getAllExpenses(groupId, principal.getName()));
+    }
+
     @PostMapping
-    public ResponseEntity<String> createExpense(@RequestBody CreateExpenseDTO dto, Principal principal) {
-        expenseService.createExpense(dto, principal.getName());
+    public ResponseEntity<String> createExpense(@PathVariable Long groupId,
+                                                @RequestBody CreateExpenseDTO dto,
+                                                Principal principal) {
+        expenseService.createExpense(dto, groupId, principal.getName());
         return ResponseEntity.ok("Expense created successfully");
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<GetExpenseDTO>> getAllExpenses(@RequestParam Long groupId, Principal principal) {
-        List<GetExpenseDTO> expenses = expenseService.getAllExpenses(groupId, principal.getName());
-        return ResponseEntity.ok(expenses);
+    @GetMapping("/{expenseId}")
+    public ResponseEntity<ExpenseReturnDTO> getExpense(@PathVariable Long groupId,
+                                                       @PathVariable Long expenseId,
+                                                       Principal principal) {
+        return ResponseEntity.ok(expenseService.getExpense(groupId, expenseId, principal.getName()));
     }
 
-    @GetMapping
-    public ResponseEntity<ExpenseReturnDTO> getExpense(@RequestParam Long groupId, @RequestParam Long expenseId, Principal principal) {
-        ExpenseReturnDTO expense = expenseService.getExpense(groupId, expenseId, principal.getName());
-        return ResponseEntity.ok(expense);
-    }
-
-    @PutMapping
-    public ResponseEntity<String> updateExpense(@RequestBody UpdateExpenseDTO dto, Principal principal) {
-        expenseService.updateExpense(dto, principal.getName());
+    @PutMapping("/{expenseId}")
+    public ResponseEntity<String> updateExpense(@PathVariable Long groupId,
+                                                @PathVariable Long expenseId,
+                                                @RequestBody UpdateExpenseDTO dto,
+                                                Principal principal) {
+        expenseService.updateExpense(dto, groupId, expenseId, principal.getName());
         return ResponseEntity.ok("Expense updated successfully");
     }
 
-    @DeleteMapping
-    public ResponseEntity<String> deleteExpense(@RequestParam Long groupId, @RequestParam Long expenseId, Principal principal) {
+    @DeleteMapping("/{expenseId}")
+    public ResponseEntity<String> deleteExpense(@PathVariable Long groupId,
+                                                @PathVariable Long expenseId,
+                                                Principal principal) {
         expenseService.deleteExpense(groupId, expenseId, principal.getName());
         return ResponseEntity.ok("Expense deleted successfully");
     }

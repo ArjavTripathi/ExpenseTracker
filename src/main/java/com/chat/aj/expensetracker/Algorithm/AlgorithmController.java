@@ -17,7 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/api/algorithm")
 public class AlgorithmController {
-    public final Algorithm algorithm;
+    private final Algorithm algorithm;
 
     @GetMapping("/preprocessed")
     public ResponseEntity<Map<String, BigDecimal>> getPreprocessedData(@RequestParam Long groupId) {
@@ -27,8 +27,7 @@ public class AlgorithmController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SettlementDTO>> runAlgorithm(@RequestParam Long groupId){
-        List<SettlementDTO> settlements = algorithm.getOrComputeCache(groupId);
-        return ResponseEntity.ok(settlements);
+    public ResponseEntity<List<SettlementDTO>> runAlgorithm(@RequestParam Long groupId) {
+        return ResponseEntity.ok(algorithm.getOrComputeCache(groupId));
     }
 }

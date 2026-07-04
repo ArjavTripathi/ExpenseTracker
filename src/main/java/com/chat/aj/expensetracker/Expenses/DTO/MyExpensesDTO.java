@@ -5,13 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class UpdateExpenseDTO {
+public class MyExpensesDTO {
+    private String groupName;
+    private String payer;
     private BigDecimal totalAmount;
-    private String description;
-    private List<ParticipantShareDTO> participants;
+    private BigDecimal myShare;
 }

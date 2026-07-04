@@ -15,14 +15,14 @@ import java.util.Date;
 @Component
 public class JWTService {
     @Value("${jwt_secret}")
-    public String jwtSecret;
+    private String jwtSecret;
 
     @Value("${jwt_expiration}")
-    public int expirationMs;
+    private int expirationMs;
 
-    public String getJwtFromHeader(HttpServletRequest req){
+    public String getJwtFromHeader(HttpServletRequest req) {
         String bearer = req.getHeader("Authorization");
-        if (bearer != null && bearer.startsWith(("Bearer "))){
+        if (bearer != null && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
         }
         return null;
@@ -31,14 +31,13 @@ public class JWTService {
     public String generateToken(AccountDetails userDetails) {
         return Jwts.builder()
                 .subject(userDetails.getUsername())
-                .claim("id", userDetails.getId()) // store id in token
                 .issuedAt(new Date())
                 .expiration(new Date(new Date().getTime() + expirationMs))
                 .signWith(key())
                 .compact();
     }
 
-    private Key key(){
+    private Key key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
 
@@ -48,11 +47,11 @@ public class JWTService {
                     .build().parseSignedClaims(authToken);
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
     }
-    public String getUserNameFromJwtToken(String token){
+
+    public String getUserNameFromJwtToken(String token) {
         return Jwts.parser()
                 .verifyWith((SecretKey) key())
                 .build().parseSignedClaims(token)

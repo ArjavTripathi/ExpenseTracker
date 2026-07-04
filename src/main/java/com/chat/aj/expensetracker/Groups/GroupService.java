@@ -1,9 +1,9 @@
 package com.chat.aj.expensetracker.Groups;
 
+import com.chat.aj.expensetracker.Algorithm.Algorithm;
+import com.chat.aj.expensetracker.Algorithm.DTO.SettlementDTO;
 import com.chat.aj.expensetracker.Auth.AuthService;
-import com.chat.aj.expensetracker.Groups.DTOs.AddMemberResponse;
-import com.chat.aj.expensetracker.Groups.DTOs.CreateGroupResponse;
-import com.chat.aj.expensetracker.Groups.DTOs.GroupDTO;
+import com.chat.aj.expensetracker.Groups.DTOs.*;
 import com.chat.aj.expensetracker.Websockets.DTO.NotificationsDTO;
 import com.chat.aj.expensetracker.common.Entities.*;
 import com.chat.aj.expensetracker.common.Exceptions.ConflictException;
@@ -14,6 +14,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,48 +27,64 @@ public class GroupService {
     private GroupRepository groupRepository;
     private AuthService userService;
     private GroupMembersRepository groupMembersRepository;
+    private ExpensesRepository expensesRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final Algorithm algorithm;
 
-    public Group findGroupById(Long id){
+    public Group findGroupById(Long id) {
         return groupRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find group"));
     }
 
-    public GroupMembers findGroupMemberInGroup(Group group, User user){
+    public GroupMembers findGroupMemberInGroup(Group group, User user) {
         return groupMembersRepository.findByGroupAndMember(group, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find user in group"));
     }
 
-    public boolean isGroupMember(Group group, User user){
+    public boolean isGroupMember(Group group, User user) {
         return group.getOwner().equals(user) ||
                groupMembersRepository.findByGroupAndMember(group, user).isPresent();
     }
 
-    public void createGroup(CreateGroupResponse newGroup, String email) {
+    private List<MemberDTO> buildMemberList(Group group) {
+        List<MemberDTO> members = new ArrayList<>();
+        members.add(new MemberDTO(group.getOwner().getId(), group.getOwner().getName()));
+        groupMembersRepository.findByGroup(group).forEach(gm ->
+                members.add(new MemberDTO(gm.getMember().getId(), gm.getMember().getName()))
+        );
+        return members;
+    }
 
+    private GroupDTO toGroupDTO(Group group) {
+        List<MemberDTO> members = buildMemberList(group);
+        List<Expenses> expenses = expensesRepository.findByGroup(group);
+        BigDecimal totalSpent = expenses.stream()
+                .map(Expenses::getAmount)
+                .filter(a -> a != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new GroupDTO(group.getGroupId(), group.getName(), group.getCreatedAt(), members, expenses.size(), totalSpent);
+    }
+
+    public void createGroup(CreateGroupResponse newGroup, String email) {
         User owner = userService.findUserByEmail(email);
 
         Group group = new Group();
-        group.setCreated_at(LocalDateTime.now());
+        group.setCreatedAt(LocalDateTime.now());
         group.setName(newGroup.getName());
         group.setOwner(owner);
         groupRepository.save(group);
-
     }
 
-    public void addMemberToGroup(AddMemberResponse newMember, String email) {
+    public void addMemberToGroup(Long groupId, String memberEmail, String callerEmail) {
+        User newUser = userService.findUserByEmail(memberEmail);
+        Group group = findGroupById(groupId);
+        User currentUser = userService.findUserByEmail(callerEmail);
 
-        User newUser = userService.findUserByEmail(newMember.getEmail());
-
-        Group group = findGroupById(newMember.getGroupId());
-        User currentUser = userService.findUserByEmail(email);
-
-        if(!group.getOwner().equals(currentUser)){
+        if (!group.getOwner().equals(currentUser)) {
             throw new UnauthorizedException("You are not authorized to carry out this action");
         }
 
-
-        if(groupMembersRepository.findByGroupAndMember(group, newUser).isPresent() || group.getOwner().equals(newUser)){
+        if (groupMembersRepository.findByGroupAndMember(group, newUser).isPresent() || group.getOwner().equals(newUser)) {
             throw new ConflictException("User is already in the group");
         }
 
@@ -77,64 +94,33 @@ public class GroupService {
         groupMembersRepository.save(groupMembers);
 
         messagingTemplate.convertAndSend(
-                "/topic/group/" + newMember.getGroupId(),
-                new NotificationsDTO("MEMBER_ADDED", "A new member was added to the group", newMember.getGroupId())
+                "/topic/group/" + groupId,
+                new NotificationsDTO("MEMBER_ADDED", "A new member was added to the group", groupId)
         );
-
     }
 
     @Transactional
     public GroupDTO getGroup(Long groupId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
-
-        List<String> memberNames = group.getMembers().stream()
-                .map(m -> m.getMember().getName())
-                .collect(Collectors.toList());
-        
-        return new GroupDTO(group.getName(), group.getOwner().getName(), memberNames);
+        return toGroupDTO(group);
     }
 
-    public List<GroupDTO> getMyGroups(String name) {
-        User user = userService.findUserByEmail(name);
-
-        List<Group> ownedGroups = groupRepository.findByOwner(user);
-        List<GroupMembers> memberedGroups = groupMembersRepository.findByMember(user);
-
-        if(ownedGroups.isEmpty() && memberedGroups.isEmpty()){
-            throw new ResourceNotFoundException("This user is not in any groups");
-        }
-        List<GroupDTO> returnable = new ArrayList<>();
-        if(!ownedGroups.isEmpty()){
-            for(Group g: ownedGroups){
-                List<String> memberNames = g.getMembers().stream()
-                        .map(m -> m.getMember().getName())
-                        .toList();
-                returnable.add(new GroupDTO(g.getName(), g.getOwner().getName(), memberNames));
-            }
-        }
-
-        if(!memberedGroups.isEmpty()){
-            for(GroupMembers group: memberedGroups){
-                Group g = group.getGroup();
-                List<String> memberNames = g.getMembers().stream()
-                        .map(m -> m.getMember().getName())
-                        .toList();
-                returnable.add(new GroupDTO(g.getName(), g.getOwner().getName(), memberNames));
-            }
-        }
-
-        return returnable;
+    @Transactional
+    public List<GroupDTO> getMyGroups(String email) {
+        User user = userService.findUserByEmail(email);
+        List<Group> groups = groupRepository.findByMembers_MemberOrOwner(user, user);
+        return groups.stream().map(this::toGroupDTO).collect(Collectors.toList());
     }
 
-    public void removeUser(Long groupId, String targetEmail, String originEmail) {
+    public void removeUser(Long groupId, Long memberId, String originEmail) {
         User currentUser = userService.findUserByEmail(originEmail);
-        User toRemove = userService.findUserByEmail(targetEmail);
+        User toRemove = userService.findUserById(memberId);
         Group group = findGroupById(groupId);
 
-        if(!group.getOwner().equals(currentUser)){
+        if (!group.getOwner().equals(currentUser)) {
             throw new UnauthorizedException("Only the owner can kick a member");
-        } else if(group.getOwner().equals(toRemove)) {
+        } else if (group.getOwner().equals(toRemove)) {
             throw new ConflictException("You cannot remove the owner");
         }
 
@@ -150,7 +136,7 @@ public class GroupService {
         Group group = findGroupById(groupId);
         User owner = userService.findUserByEmail(email);
 
-        if(!group.getOwner().equals(owner)){
+        if (!group.getOwner().equals(owner)) {
             throw new UnauthorizedException("You are not the owner.");
         }
         messagingTemplate.convertAndSend(
@@ -162,4 +148,23 @@ public class GroupService {
         groupRepository.delete(group);
     }
 
+    public List<FriendSettlementsDTO> getFriendSettlements(String name) {
+        User user = userService.findUserByEmail(name);
+        List<Group> allGroups = groupRepository.findByMembers_MemberOrOwner(user, user);
+        List<FriendSettlementsDTO> friends = new ArrayList<>();
+
+        List<SettlementDTO> settlements = new ArrayList<>();
+        for (Group g : allGroups) {
+            settlements.addAll(algorithm.getOrComputeCache(g.getGroupId()));
+        }
+        for (SettlementDTO s : settlements) {
+            if (s.getOwed().getName().equals(user.getName())) {
+                friends.add(new FriendSettlementsDTO(s.getOwer().getName(), s.getAmount()));
+            } else if (s.getOwer().getName().equals(user.getName())) {
+                friends.add(new FriendSettlementsDTO(s.getOwed().getName(), s.getAmount()));
+            }
+        }
+
+        return friends;
+    }
 }

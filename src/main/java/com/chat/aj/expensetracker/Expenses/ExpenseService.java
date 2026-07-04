@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,8 +30,9 @@ public class ExpenseService {
     private final SimpMessagingTemplate messagingTemplate;
     private final Algorithm algorithm;
 
-    public void createExpense(CreateExpenseDTO dto, String callerEmail) {
-        Group group = groupService.findGroupById(dto.getGroupId());
+    @Transactional
+    public void createExpense(CreateExpenseDTO dto, Long groupId, String callerEmail) {
+        Group group = groupService.findGroupById(groupId);
         User caller = authService.findUserByEmail(callerEmail);
         if (!groupService.isGroupMember(group, caller)) {
             throw new UnauthorizedException("You are not a member of this group");
@@ -48,11 +50,17 @@ public class ExpenseService {
         expense.setUser(caller);
         expense.setAmount(dto.getTotalAmount());
         expense.setDescription(dto.getDescription());
-        expense.setCreated_at(LocalDateTime.now());
+        expense.setCreatedAt(LocalDateTime.now());
         expensesRepository.save(expense);
 
+        List<Long> userIds = dto.getParticipants().stream()
+                .map(ParticipantShareDTO::getUserId)
+                .toList();
+        Map<Long, User> userMap = authService.findUsersByIds(userIds);
+
         for (ParticipantShareDTO p : dto.getParticipants()) {
-            User participant = authService.findUserById(p.getUserId());
+            User participant = userMap.get(p.getUserId());
+            if (participant == null) throw new ResourceNotFoundException("Cannot find user: " + p.getUserId());
             ExpenseParticipants ep = new ExpenseParticipants();
             ep.setExpenses(expense);
             ep.setUser(participant);
@@ -61,11 +69,11 @@ public class ExpenseService {
         }
 
         messagingTemplate.convertAndSend(
-                "/topic/group/" + dto.getGroupId(),
-                new NotificationsDTO("EXPENSE_ADDED", "A new expense was added", dto.getGroupId())
+                "/topic/group/" + groupId,
+                new NotificationsDTO("EXPENSE_ADDED", "A new expense was added", groupId)
         );
 
-        algorithm.invalidateCache(dto.getGroupId());
+        algorithm.invalidateCache(groupId);
     }
 
     public List<GetExpenseDTO> getAllExpenses(Long groupId, String callerEmail) {
@@ -76,7 +84,13 @@ public class ExpenseService {
         }
         List<Expenses> expenses = expensesRepository.findByGroup(group);
         return expenses.stream()
-                .map(e -> new GetExpenseDTO(e.getId(), e.getDescription(), e.getAmount(), e.getUser().getName()))
+                .map(e -> new GetExpenseDTO(
+                        e.getId(),
+                        e.getDescription(),
+                        e.getAmount(),
+                        e.getUser().getId(),
+                        e.getUser().getName(),
+                        e.getCreatedAt()))
                 .collect(Collectors.toList());
     }
 
@@ -90,16 +104,16 @@ public class ExpenseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
         List<ExpenseParticipants> participants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
         List<ExpenseParticipantsDTO> participantDTOs = participants.stream()
-                .map(p -> new ExpenseParticipantsDTO(p.getUser().getName(), p.getAmount()))
+                .map(p -> new ExpenseParticipantsDTO(p.getUser().getId(), p.getAmount()))
                 .collect(Collectors.toList());
-        return new ExpenseReturnDTO(expense.getUser().getName(), expense.getDescription(), expense.getAmount(), expense.getCreated_at(), participantDTOs);
+        return new ExpenseReturnDTO(groupId, expense.getUser().getName(), expense.getDescription(), expense.getAmount(), expense.getCreatedAt(), participantDTOs);
     }
 
     @Transactional
-    public void updateExpense(UpdateExpenseDTO dto, String callerEmail) {
-        groupService.findGroupById(dto.getGroupId());
+    public void updateExpense(UpdateExpenseDTO dto, Long groupId, Long expenseId, String callerEmail) {
+        groupService.findGroupById(groupId);
         User caller = authService.findUserByEmail(callerEmail);
-        Expenses expense = expensesRepository.findExpenseById(dto.getExpenseId())
+        Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
         if (!expense.getUser().equals(caller)) {
             throw new UnauthorizedException("Only the expense creator can update this expense");
@@ -118,8 +132,14 @@ public class ExpenseService {
         List<ExpenseParticipants> oldParticipants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
         expenseParticipantsRepository.deleteAll(oldParticipants);
 
+        List<Long> userIds = dto.getParticipants().stream()
+                .map(ParticipantShareDTO::getUserId)
+                .toList();
+        Map<Long, User> userMap = authService.findUsersByIds(userIds);
+
         for (ParticipantShareDTO p : dto.getParticipants()) {
-            User participant = authService.findUserById(p.getUserId());
+            User participant = userMap.get(p.getUserId());
+            if (participant == null) throw new ResourceNotFoundException("Cannot find user: " + p.getUserId());
             ExpenseParticipants ep = new ExpenseParticipants();
             ep.setExpenses(expense);
             ep.setUser(participant);
@@ -128,11 +148,11 @@ public class ExpenseService {
         }
 
         messagingTemplate.convertAndSend(
-                "/topic/group/" + dto.getGroupId(),
-                new NotificationsDTO("EXPENSE_UPDATED", "An existing expense was updated", dto.getGroupId())
+                "/topic/group/" + groupId,
+                new NotificationsDTO("EXPENSE_UPDATED", "An existing expense was updated", groupId)
         );
 
-        algorithm.invalidateCache(dto.getGroupId());
+        algorithm.invalidateCache(groupId);
     }
 
     @Transactional
@@ -154,4 +174,19 @@ public class ExpenseService {
         algorithm.invalidateCache(groupId);
     }
 
+    public List<MyExpensesDTO> getRecentExpenses(String name) {
+        User user = authService.findUserByEmail(name);
+        List<ExpenseParticipants> participantRecords = expenseParticipantsRepository.findByUser(user);
+        return participantRecords.stream()
+                .map(record -> {
+                    Expenses expense = record.getExpenses();
+                    return new MyExpensesDTO(
+                            expense.getGroup().getName(),
+                            expense.getUser().getName(),
+                            expense.getAmount(),
+                            record.getAmount()
+                    );
+                })
+                .collect(Collectors.toList());
+    }
 }
