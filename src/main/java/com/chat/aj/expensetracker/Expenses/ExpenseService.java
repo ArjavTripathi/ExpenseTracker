@@ -102,6 +102,9 @@ public class ExpenseService {
         }
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
+        if(!expense.getGroup().equals(group)) {
+            throw new UnauthorizedException("Cannot find expense");
+        }
         List<ExpenseParticipants> participants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
         List<ExpenseParticipantsDTO> participantDTOs = participants.stream()
                 .map(p -> new ExpenseParticipantsDTO(p.getUser().getId(), p.getAmount()))
@@ -115,7 +118,7 @@ public class ExpenseService {
         User caller = authService.findUserByEmail(callerEmail);
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
-        if (!expense.getUser().equals(caller)) {
+        if (!expense.getUser().equals(caller) || !expense.getGroup().equals(groupService.findGroupById(groupId))) {
             throw new UnauthorizedException("Only the expense creator can update this expense");
         }
         BigDecimal totalShares = dto.getParticipants().stream()
@@ -161,7 +164,7 @@ public class ExpenseService {
         User caller = authService.findUserByEmail(callerEmail);
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
-        if (!expense.getUser().equals(caller) && !group.getOwner().equals(caller)) {
+        if (!expense.getUser().equals(caller) && !group.getOwner().equals(caller) && !expense.getGroup().getOwner().equals(caller)) {
             throw new UnauthorizedException("Only the expense creator or group owner can delete this expense");
         }
         List<ExpenseParticipants> participants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
