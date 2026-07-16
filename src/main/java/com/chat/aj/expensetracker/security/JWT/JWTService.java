@@ -31,6 +31,8 @@ public class JWTService {
     public String generateToken(AccountDetails userDetails) {
         return Jwts.builder()
                 .subject(userDetails.getUsername())
+                .claim("id", userDetails.getId())
+                .claim("name", userDetails.getName())
                 .issuedAt(new Date())
                 .expiration(new Date(new Date().getTime() + expirationMs))
                 .signWith(key())
