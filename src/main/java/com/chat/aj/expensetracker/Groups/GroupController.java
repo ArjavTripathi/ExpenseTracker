@@ -4,6 +4,8 @@ import com.chat.aj.expensetracker.Algorithm.Algorithm;
 import com.chat.aj.expensetracker.Algorithm.DTO.SettlementDTO;
 import com.chat.aj.expensetracker.Groups.DTOs.CreateGroupResponse;
 import com.chat.aj.expensetracker.Groups.DTOs.GroupDTO;
+import com.chat.aj.expensetracker.common.Exceptions.ForbiddenException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +21,9 @@ public class GroupController {
     private final GroupService groupService;
     private final Algorithm algorithm;
 
+
     @PostMapping
-    public ResponseEntity<String> createGroup(@RequestBody CreateGroupResponse newGroup, Principal principal) {
+    public ResponseEntity<String> createGroup(@Valid @RequestBody CreateGroupResponse newGroup, Principal principal) {
         groupService.createGroup(newGroup, principal.getName());
         return ResponseEntity.ok("Success!");
     }
@@ -31,8 +34,8 @@ public class GroupController {
     }
 
     @GetMapping("/{groupId}")
-    public ResponseEntity<GroupDTO> getGroup(@PathVariable Long groupId) {
-        return ResponseEntity.ok(groupService.getGroup(groupId));
+    public ResponseEntity<GroupDTO> getGroup(@PathVariable Long groupId, Principal principal) {
+        return ResponseEntity.ok(groupService.getGroup(groupId, principal.getName()));
     }
 
     @DeleteMapping("/{groupId}")
@@ -58,7 +61,10 @@ public class GroupController {
     }
 
     @GetMapping("/{groupId}/settlements")
-    public ResponseEntity<List<SettlementDTO>> getSettlements(@PathVariable Long groupId) {
+    public ResponseEntity<List<SettlementDTO>> getSettlements(@PathVariable Long groupId, Principal principal) {
+        if(!groupService.isGroupMember(groupService.findGroupById(groupId), groupService.findUserByEmail(principal.getName()))) {
+            throw new ForbiddenException("You are not a member of this group");
+        }
         return ResponseEntity.ok(algorithm.getOrComputeCache(groupId));
     }
 }

@@ -7,8 +7,8 @@ import com.chat.aj.expensetracker.Groups.DTOs.*;
 import com.chat.aj.expensetracker.Websockets.DTO.NotificationsDTO;
 import com.chat.aj.expensetracker.common.Entities.*;
 import com.chat.aj.expensetracker.common.Exceptions.ConflictException;
+import com.chat.aj.expensetracker.common.Exceptions.ForbiddenException;
 import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
-import com.chat.aj.expensetracker.common.Exceptions.UnauthorizedException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -39,6 +39,10 @@ public class GroupService {
     public GroupMembers findGroupMemberInGroup(Group group, User user) {
         return groupMembersRepository.findByGroupAndMember(group, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find user in group"));
+    }
+
+    public User findUserByEmail(String email){
+        return userService.findUserByEmail(email);
     }
 
     public boolean isGroupMember(Group group, User user) {
@@ -81,7 +85,7 @@ public class GroupService {
         User currentUser = userService.findUserByEmail(callerEmail);
 
         if (!group.getOwner().equals(currentUser)) {
-            throw new UnauthorizedException("You are not authorized to carry out this action");
+            throw new ForbiddenException("You are not authorized to carry out this action");
         }
 
         if (groupMembersRepository.findByGroupAndMember(group, newUser).isPresent() || group.getOwner().equals(newUser)) {
@@ -100,10 +104,14 @@ public class GroupService {
     }
 
     @Transactional
-    public GroupDTO getGroup(Long groupId) {
+    public GroupDTO getGroup(Long groupId, String email) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
-        return toGroupDTO(group);
+        if(isGroupMember(group, userService.findUserByEmail(email))) {
+            return toGroupDTO(group);
+        } else {
+            throw new ForbiddenException("You are not a member of this group");
+        }
     }
 
     @Transactional
@@ -119,7 +127,7 @@ public class GroupService {
         Group group = findGroupById(groupId);
 
         if (!group.getOwner().equals(currentUser)) {
-            throw new UnauthorizedException("Only the owner can kick a member");
+            throw new ForbiddenException("Only the owner can kick a member");
         } else if (group.getOwner().equals(toRemove)) {
             throw new ConflictException("You cannot remove the owner");
         }
@@ -137,7 +145,7 @@ public class GroupService {
         User owner = userService.findUserByEmail(email);
 
         if (!group.getOwner().equals(owner)) {
-            throw new UnauthorizedException("You are not the owner.");
+            throw new ForbiddenException("You are not the owner.");
         }
         messagingTemplate.convertAndSend(
                 "/topic/group/" + groupId,
