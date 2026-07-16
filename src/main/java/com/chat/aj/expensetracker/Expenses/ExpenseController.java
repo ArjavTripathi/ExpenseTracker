@@ -1,6 +1,7 @@
 package com.chat.aj.expensetracker.Expenses;
 
 import com.chat.aj.expensetracker.Expenses.DTO.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class ExpenseController {
 
     @PostMapping
     public ResponseEntity<String> createExpense(@PathVariable Long groupId,
-                                                @RequestBody CreateExpenseDTO dto,
+                                                @Valid @RequestBody CreateExpenseDTO dto,
                                                 Principal principal) {
         expenseService.createExpense(dto, groupId, principal.getName());
         return ResponseEntity.ok("Expense created successfully");
@@ -37,7 +38,7 @@ public class ExpenseController {
     @PutMapping("/{expenseId}")
     public ResponseEntity<String> updateExpense(@PathVariable Long groupId,
                                                 @PathVariable Long expenseId,
-                                                @RequestBody UpdateExpenseDTO dto,
+                                                @Valid @RequestBody UpdateExpenseDTO dto,
                                                 Principal principal) {
         expenseService.updateExpense(dto, groupId, expenseId, principal.getName());
         return ResponseEntity.ok("Expense updated successfully");

@@ -6,8 +6,8 @@ import com.chat.aj.expensetracker.Expenses.DTO.*;
 import com.chat.aj.expensetracker.Groups.GroupService;
 import com.chat.aj.expensetracker.Websockets.DTO.NotificationsDTO;
 import com.chat.aj.expensetracker.common.Entities.*;
+import com.chat.aj.expensetracker.common.Exceptions.ForbiddenException;
 import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
-import com.chat.aj.expensetracker.common.Exceptions.UnauthorizedException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ public class ExpenseService {
         Group group = groupService.findGroupById(groupId);
         User caller = authService.findUserByEmail(callerEmail);
         if (!groupService.isGroupMember(group, caller)) {
-            throw new UnauthorizedException("You are not a member of this group");
+            throw new ForbiddenException("You are not a member of this group");
         }
         BigDecimal totalShares = dto.getParticipants().stream()
                 .map(ParticipantShareDTO::getShareAmount)
@@ -80,7 +80,7 @@ public class ExpenseService {
         Group group = groupService.findGroupById(groupId);
         User caller = authService.findUserByEmail(callerEmail);
         if (!groupService.isGroupMember(group, caller)) {
-            throw new UnauthorizedException("You are not a member of this group");
+            throw new ForbiddenException("You are not a member of this group");
         }
         List<Expenses> expenses = expensesRepository.findByGroup(group);
         return expenses.stream()
@@ -98,12 +98,12 @@ public class ExpenseService {
         Group group = groupService.findGroupById(groupId);
         User caller = authService.findUserByEmail(callerEmail);
         if (!groupService.isGroupMember(group, caller)) {
-            throw new UnauthorizedException("You are not a member of this group");
+            throw new ForbiddenException("You are not a member of this group");
         }
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
         if(!expense.getGroup().equals(group)) {
-            throw new UnauthorizedException("Cannot find expense");
+            throw new ResourceNotFoundException("Cannot find expense");
         }
         List<ExpenseParticipants> participants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
         List<ExpenseParticipantsDTO> participantDTOs = participants.stream()
@@ -119,7 +119,7 @@ public class ExpenseService {
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
         if (!expense.getUser().equals(caller) || !expense.getGroup().equals(groupService.findGroupById(groupId))) {
-            throw new UnauthorizedException("Only the expense creator can update this expense");
+            throw new ForbiddenException("Only the expense creator can update this expense");
         }
         BigDecimal totalShares = dto.getParticipants().stream()
                 .map(ParticipantShareDTO::getShareAmount)
@@ -165,7 +165,7 @@ public class ExpenseService {
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
         if (!expense.getUser().equals(caller) && !group.getOwner().equals(caller) && !expense.getGroup().getOwner().equals(caller)) {
-            throw new UnauthorizedException("Only the expense creator or group owner can delete this expense");
+            throw new ForbiddenException("Only the expense creator or group owner can delete this expense");
         }
         List<ExpenseParticipants> participants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
         expenseParticipantsRepository.deleteAll(participants);
