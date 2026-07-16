@@ -45,4 +45,8 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("user")
     private List<ExpenseParticipants> expenseParticipants;
+
+    @OneToMany(mappedBy = "requestedBy")
+    @JsonIgnoreProperties("requestedBy")
+    private List<Audit> audits;
 }
