@@ -1,0 +1,22 @@
+
+name: Deploy Backend
+on:
+  push:
+    branches: [master, deployed]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync to environment and deploy
+        run: |
+          if [ "${{ github.ref_name }}" = "deployed" ]; then
+            ENV_DIR=~/homelab/projects/expensetracker/prod
+          else
+            ENV_DIR=~/homelab/projects/expensetracker/dev
+          fi
+          mkdir -p "$ENV_DIR/repo/backend"
+          rsync -a --delete ./ "$ENV_DIR/repo/backend/"
+          cd "$ENV_DIR" && docker compose up -d --build backend
