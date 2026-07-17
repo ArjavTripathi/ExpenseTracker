@@ -73,6 +73,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/group/**").authenticated()
                         .requestMatchers("/api/groups/**").authenticated()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/api/health").permitAll()
                         .anyRequest().authenticated()
                 );
         http.authenticationProvider(authenticationProvider());
