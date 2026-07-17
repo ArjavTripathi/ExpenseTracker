@@ -29,5 +29,4 @@ public class Audit {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User requestedBy;
-U
 }
