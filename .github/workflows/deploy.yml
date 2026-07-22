@@ -2,7 +2,7 @@
 name: Deploy Backend
 on:
   push:
-    branches: [master, deployed]
+    branches: [master]
 
 jobs:
   deploy:
@@ -12,11 +12,7 @@ jobs:
 
       - name: Sync to environment and deploy
         run: |
-          if [ "${{ github.ref_name }}" = "deployed" ]; then
-            ENV_DIR=~/homelab/projects/expensetracker/prod
-          else
-            ENV_DIR=~/homelab/projects/expensetracker/dev
-          fi
+          ENV_DIR=~/homelab/projects/expensetracker/prod
           mkdir -p "$ENV_DIR/repo/backend"
           rsync -a --delete ./ "$ENV_DIR/repo/backend/"
           cd "$ENV_DIR" && docker compose up -d --build backend
