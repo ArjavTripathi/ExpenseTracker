@@ -12,7 +12,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ExpenseReturnDTO {
+    private Long id;
     private Long groupId;
+    private Long payerId;
     private String payerName;
     private String description;
     private BigDecimal totalAmount;

@@ -109,7 +109,7 @@ public class ExpenseService {
         List<ExpenseParticipantsDTO> participantDTOs = participants.stream()
                 .map(p -> new ExpenseParticipantsDTO(p.getUser().getId(), p.getAmount()))
                 .collect(Collectors.toList());
-        return new ExpenseReturnDTO(groupId, expense.getUser().getName(), expense.getDescription(), expense.getAmount(), expense.getCreatedAt(), participantDTOs);
+        return new ExpenseReturnDTO(expense.getId(), groupId, expense.getUser().getId(), expense.getUser().getName(), expense.getDescription(), expense.getAmount(), expense.getCreatedAt(), participantDTOs);
     }
 
     @Transactional

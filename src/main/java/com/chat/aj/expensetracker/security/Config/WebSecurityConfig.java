@@ -4,6 +4,7 @@ import com.chat.aj.expensetracker.security.Accounts.AccountDetailsService;
 import com.chat.aj.expensetracker.security.JWT.JWTAuthenticationFilter;
 import com.chat.aj.expensetracker.security.JWT.JWTService;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,6 +23,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Configuration
@@ -31,6 +34,7 @@ import java.util.List;
 public class WebSecurityConfig {
     private AccountDetailsService accountService;
     private JWTService jwtService;
+
 
     @Bean
     public JWTAuthenticationFilter jwtAuthenticationFilter(){
@@ -69,8 +73,6 @@ public class WebSecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/accounts/**").authenticated()
-                        .requestMatchers("/api/group/**").authenticated()
                         .requestMatchers("/api/groups/**").authenticated()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/health").permitAll()
