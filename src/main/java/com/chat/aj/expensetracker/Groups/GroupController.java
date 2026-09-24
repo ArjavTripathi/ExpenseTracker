@@ -4,7 +4,6 @@ import com.chat.aj.expensetracker.Algorithm.Algorithm;
 import com.chat.aj.expensetracker.Algorithm.DTO.SettlementDTO;
 import com.chat.aj.expensetracker.Groups.DTOs.CreateGroupResponse;
 import com.chat.aj.expensetracker.Groups.DTOs.GroupDTO;
-import com.chat.aj.expensetracker.common.Exceptions.ForbiddenException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -62,9 +61,7 @@ public class GroupController {
 
     @GetMapping("/{groupId}/settlements")
     public ResponseEntity<List<SettlementDTO>> getSettlements(@PathVariable Long groupId, Principal principal) {
-        if(!groupService.isGroupMember(groupService.findGroupById(groupId), groupService.findUserByEmail(principal.getName()))) {
-            throw new ForbiddenException("You are not a member of this group");
-        }
+        groupService.requireMember(groupId, principal.getName());
         return ResponseEntity.ok(algorithm.getOrComputeCache(groupId));
     }
 }

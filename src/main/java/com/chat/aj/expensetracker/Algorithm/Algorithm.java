@@ -35,30 +35,8 @@ public class Algorithm {
         return balances;
     }
 
-    public Map<User, BigDecimal> populateMap(Long groupId) {
-        return initBalanceMap(findGroupById(groupId));
-    }
-
-    public Map<String, BigDecimal> getBalances(Map<User, BigDecimal> map, Long groupId) {
-        Group group = findGroupById(groupId);
-        List<Expenses> expenses = expensesRepository.findByGroup(group);
-
-        Map<Long, List<ExpenseParticipants>> participantsByExpense = expenseParticipantsRepository
-                .findByExpensesGroup(group)
-                .stream()
-                .collect(Collectors.groupingBy(ep -> ep.getExpenses().getId()));
-
-        expenses.stream()
-                .filter(exp -> exp.getAmount() != null)
-                .forEach(exp -> {
-                    map.merge(exp.getUser(), exp.getAmount(), BigDecimal::add);
-                    List<ExpenseParticipants> expPart = participantsByExpense.getOrDefault(exp.getId(), List.of());
-                    expPart.stream()
-                            .filter(ep -> ep.getUser() != null && ep.getAmount() != null)
-                            .forEach(ep -> map.merge(ep.getUser(), ep.getAmount().negate(), BigDecimal::add));
-                });
-
-        return map.entrySet().stream()
+    public Map<String, BigDecimal> getBalances(Long groupId) {
+        return preprocess(groupId).entrySet().stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getKey().getName(),
                         Map.Entry::getValue,

@@ -11,5 +11,6 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class FriendSettlementsDTO {
     private String friend;
+    /** Positive: this friend owes the user. Negative: the user owes this friend. */
     private BigDecimal amount;
 }

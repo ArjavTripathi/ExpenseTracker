@@ -8,6 +8,7 @@ import com.chat.aj.expensetracker.Websockets.DTO.NotificationsDTO;
 import com.chat.aj.expensetracker.common.Entities.*;
 import com.chat.aj.expensetracker.common.Exceptions.ForbiddenException;
 import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
+import com.chat.aj.expensetracker.common.Utility.AfterCommit;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +17,10 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,13 +40,12 @@ public class ExpenseService {
         if (!groupService.isGroupMember(group, caller)) {
             throw new ForbiddenException("You are not a member of this group");
         }
-        BigDecimal totalShares = dto.getParticipants().stream()
-                .map(ParticipantShareDTO::getShareAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        if (totalShares.compareTo(dto.getTotalAmount()) != 0) {
-            throw new ValidationException("Participant shares must equal total amount");
-        }
+        validateShares(dto.getParticipants(), dto.getTotalAmount());
+        List<Long> userIds = dto.getParticipants().stream()
+                .map(ParticipantShareDTO::getUserId)
+                .toList();
+        Map<Long, User> userMap = authService.findUsersByIds(userIds);
+        requireParticipantMembers(group, userMap, userIds);
 
         Expenses expense = new Expenses();
         expense.setGroup(group);
@@ -53,27 +55,15 @@ public class ExpenseService {
         expense.setCreatedAt(LocalDateTime.now());
         expensesRepository.save(expense);
 
-        List<Long> userIds = dto.getParticipants().stream()
-                .map(ParticipantShareDTO::getUserId)
-                .toList();
-        Map<Long, User> userMap = authService.findUsersByIds(userIds);
-
         for (ParticipantShareDTO p : dto.getParticipants()) {
-            User participant = userMap.get(p.getUserId());
-            if (participant == null) throw new ResourceNotFoundException("Cannot find user: " + p.getUserId());
             ExpenseParticipants ep = new ExpenseParticipants();
             ep.setExpenses(expense);
-            ep.setUser(participant);
+            ep.setUser(userMap.get(p.getUserId()));
             ep.setAmount(p.getShareAmount());
             expenseParticipantsRepository.save(ep);
         }
 
-        messagingTemplate.convertAndSend(
-                "/topic/group/" + groupId,
-                new NotificationsDTO("EXPENSE_ADDED", "A new expense was added", groupId)
-        );
-
-        algorithm.invalidateCache(groupId);
+        publishAfterCommit(groupId, new NotificationsDTO("EXPENSE_ADDED", "A new expense was added", groupId));
     }
 
     public List<GetExpenseDTO> getAllExpenses(Long groupId, String callerEmail) {
@@ -102,7 +92,7 @@ public class ExpenseService {
         }
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
-        if(!expense.getGroup().equals(group)) {
+        if (!expense.getGroup().getGroupId().equals(group.getGroupId())) {
             throw new ResourceNotFoundException("Cannot find expense");
         }
         List<ExpenseParticipants> participants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
@@ -114,20 +104,26 @@ public class ExpenseService {
 
     @Transactional
     public void updateExpense(UpdateExpenseDTO dto, Long groupId, Long expenseId, String callerEmail) {
-        groupService.findGroupById(groupId);
+        Group group = groupService.findGroupById(groupId);
         User caller = authService.findUserByEmail(callerEmail);
+        if (!groupService.isGroupMember(group, caller)) {
+            throw new ForbiddenException("You are not a member of this group");
+        }
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
-        if (!expense.getUser().equals(caller) || !expense.getGroup().equals(groupService.findGroupById(groupId))) {
+        if (!expense.getGroup().getGroupId().equals(group.getGroupId())) {
+            throw new ResourceNotFoundException("Cannot find expense");
+        }
+        if (!expense.getUser().equals(caller)) {
             throw new ForbiddenException("Only the expense creator can update this expense");
         }
-        BigDecimal totalShares = dto.getParticipants().stream()
-                .map(ParticipantShareDTO::getShareAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        validateShares(dto.getParticipants(), dto.getTotalAmount());
+        List<Long> userIds = dto.getParticipants().stream()
+                .map(ParticipantShareDTO::getUserId)
+                .toList();
+        Map<Long, User> userMap = authService.findUsersByIds(userIds);
+        requireParticipantMembers(group, userMap, userIds);
 
-        if (totalShares.compareTo(dto.getTotalAmount()) != 0) {
-            throw new ValidationException("Participant shares must equal total amount");
-        }
         expense.setAmount(dto.getTotalAmount());
         expense.setDescription(dto.getDescription());
         expensesRepository.save(expense);
@@ -135,27 +131,15 @@ public class ExpenseService {
         List<ExpenseParticipants> oldParticipants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
         expenseParticipantsRepository.deleteAll(oldParticipants);
 
-        List<Long> userIds = dto.getParticipants().stream()
-                .map(ParticipantShareDTO::getUserId)
-                .toList();
-        Map<Long, User> userMap = authService.findUsersByIds(userIds);
-
         for (ParticipantShareDTO p : dto.getParticipants()) {
-            User participant = userMap.get(p.getUserId());
-            if (participant == null) throw new ResourceNotFoundException("Cannot find user: " + p.getUserId());
             ExpenseParticipants ep = new ExpenseParticipants();
             ep.setExpenses(expense);
-            ep.setUser(participant);
+            ep.setUser(userMap.get(p.getUserId()));
             ep.setAmount(p.getShareAmount());
             expenseParticipantsRepository.save(ep);
         }
 
-        messagingTemplate.convertAndSend(
-                "/topic/group/" + groupId,
-                new NotificationsDTO("EXPENSE_UPDATED", "An existing expense was updated", groupId)
-        );
-
-        algorithm.invalidateCache(groupId);
+        publishAfterCommit(groupId, new NotificationsDTO("EXPENSE_UPDATED", "An existing expense was updated", groupId));
     }
 
     @Transactional
@@ -164,17 +148,53 @@ public class ExpenseService {
         User caller = authService.findUserByEmail(callerEmail);
         Expenses expense = expensesRepository.findExpenseById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cannot find expense"));
-        if (!expense.getUser().equals(caller) && !group.getOwner().equals(caller) && !expense.getGroup().getOwner().equals(caller)) {
+        if (!expense.getGroup().getGroupId().equals(group.getGroupId())) {
+            throw new ResourceNotFoundException("Cannot find expense");
+        }
+        if (!groupService.isGroupMember(group, caller)) {
+            throw new ForbiddenException("You are not a member of this group");
+        }
+        if (!expense.getUser().equals(caller) && !group.getOwner().equals(caller)) {
             throw new ForbiddenException("Only the expense creator or group owner can delete this expense");
         }
         List<ExpenseParticipants> participants = expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense);
         expenseParticipantsRepository.deleteAll(participants);
         expensesRepository.delete(expense);
-        messagingTemplate.convertAndSend(
-                "/topic/group/" + groupId,
-                new NotificationsDTO("EXPENSE_DELETED", "An expense was deleted", groupId)
-        );
-        algorithm.invalidateCache(groupId);
+        publishAfterCommit(groupId, new NotificationsDTO("EXPENSE_DELETED", "An expense was deleted", groupId));
+    }
+
+    private void validateShares(List<ParticipantShareDTO> participants, BigDecimal totalAmount) {
+        Set<Long> seen = new HashSet<>();
+        for (ParticipantShareDTO participant : participants) {
+            if (!seen.add(participant.getUserId())) {
+                throw new ValidationException("Duplicate participant: " + participant.getUserId());
+            }
+        }
+        BigDecimal totalShares = participants.stream()
+                .map(ParticipantShareDTO::getShareAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalShares.compareTo(totalAmount) != 0) {
+            throw new ValidationException("Participant shares must equal total amount");
+        }
+    }
+
+    private void requireParticipantMembers(Group group, Map<Long, User> userMap, List<Long> userIds) {
+        for (Long userId : userIds) {
+            User participant = userMap.get(userId);
+            if (participant == null) {
+                throw new ResourceNotFoundException("Cannot find user: " + userId);
+            }
+            if (!groupService.isGroupMember(group, participant)) {
+                throw new ForbiddenException("Participant is not a member of this group");
+            }
+        }
+    }
+
+    private void publishAfterCommit(Long groupId, NotificationsDTO notification) {
+        AfterCommit.run(() -> {
+            messagingTemplate.convertAndSend("/topic/group/" + groupId, notification);
+            algorithm.invalidateCache(groupId);
+        });
     }
 
     public List<MyExpensesDTO> getRecentExpenses(String name) {

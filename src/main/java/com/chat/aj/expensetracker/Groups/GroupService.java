@@ -9,6 +9,7 @@ import com.chat.aj.expensetracker.common.Entities.*;
 import com.chat.aj.expensetracker.common.Exceptions.ConflictException;
 import com.chat.aj.expensetracker.common.Exceptions.ForbiddenException;
 import com.chat.aj.expensetracker.common.Exceptions.ResourceNotFoundException;
+import com.chat.aj.expensetracker.common.Utility.AfterCommit;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -17,7 +18,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +31,7 @@ public class GroupService {
     private AuthService userService;
     private GroupMembersRepository groupMembersRepository;
     private ExpensesRepository expensesRepository;
+    private ExpenseParticipantsRepository expenseParticipantsRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final Algorithm algorithm;
 
@@ -48,6 +52,14 @@ public class GroupService {
     public boolean isGroupMember(Group group, User user) {
         return group.getOwner().equals(user) ||
                groupMembersRepository.findByGroupAndMember(group, user).isPresent();
+    }
+
+    public void requireMember(Long groupId, String email) {
+        Group group = findGroupById(groupId);
+        User user = userService.findUserByEmail(email);
+        if (!isGroupMember(group, user)) {
+            throw new ForbiddenException("You are not a member of this group");
+        }
     }
 
     private List<MemberDTO> buildMemberList(Group group) {
@@ -140,6 +152,7 @@ public class GroupService {
         );
     }
 
+    @Transactional
     public void deleteGroup(Long groupId, String email) {
         Group group = findGroupById(groupId);
         User owner = userService.findUserByEmail(email);
@@ -147,13 +160,25 @@ public class GroupService {
         if (!group.getOwner().equals(owner)) {
             throw new ForbiddenException("You are not the owner.");
         }
-        messagingTemplate.convertAndSend(
-                "/topic/group/" + groupId,
-                new NotificationsDTO("GROUP_DELETED", "The group was deleted", groupId)
-        );
+
+        List<Expenses> expenses = expensesRepository.findByGroup(group);
+        for (Expenses expense : expenses) {
+            expenseParticipantsRepository.deleteAll(
+                    expenseParticipantsRepository.findExpenseParticipantsByExpenses(expense));
+        }
+        expensesRepository.deleteAll(expenses);
+
         List<GroupMembers> toDelete = groupMembersRepository.findByGroup(group);
         groupMembersRepository.deleteAll(toDelete);
         groupRepository.delete(group);
+
+        AfterCommit.run(() -> {
+            messagingTemplate.convertAndSend(
+                    "/topic/group/" + groupId,
+                    new NotificationsDTO("GROUP_DELETED", "The group was deleted", groupId)
+            );
+            algorithm.invalidateCache(groupId);
+        });
     }
 
     public List<FriendSettlementsDTO> getFriendSettlements(String name) {
@@ -161,18 +186,25 @@ public class GroupService {
         List<Group> allGroups = groupRepository.findByMembers_MemberOrOwner(user, user);
         List<FriendSettlementsDTO> friends = new ArrayList<>();
 
-        List<SettlementDTO> settlements = new ArrayList<>();
+        Map<Long, BigDecimal> nets = new LinkedHashMap<>();
+        Map<Long, String> names = new LinkedHashMap<>();
         for (Group g : allGroups) {
-            settlements.addAll(algorithm.getOrComputeCache(g.getGroupId()));
-        }
-        for (SettlementDTO s : settlements) {
-            if (s.getOwed().getName().equals(user.getName())) {
-                friends.add(new FriendSettlementsDTO(s.getOwer().getName(), s.getAmount()));
-            } else if (s.getOwer().getName().equals(user.getName())) {
-                friends.add(new FriendSettlementsDTO(s.getOwed().getName(), s.getAmount()));
+            for (SettlementDTO s : algorithm.getOrComputeCache(g.getGroupId())) {
+                if (s.getOwed().getId().equals(user.getId())) {
+                    nets.merge(s.getOwer().getId(), s.getAmount(), BigDecimal::add);
+                    names.putIfAbsent(s.getOwer().getId(), s.getOwer().getName());
+                } else if (s.getOwer().getId().equals(user.getId())) {
+                    nets.merge(s.getOwed().getId(), s.getAmount().negate(), BigDecimal::add);
+                    names.putIfAbsent(s.getOwed().getId(), s.getOwed().getName());
+                }
             }
         }
 
+        nets.forEach((friendId, amount) -> {
+            if (amount.compareTo(BigDecimal.ZERO) != 0) {
+                friends.add(new FriendSettlementsDTO(names.get(friendId), amount));
+            }
+        });
         return friends;
     }
 }
