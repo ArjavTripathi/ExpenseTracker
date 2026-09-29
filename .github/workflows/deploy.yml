@@ -6,13 +6,20 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Sync to environment and deploy
+      - name: Configure SSH
         run: |
-          ENV_DIR=~/homelab/projects/expensetracker/prod
-          mkdir -p "$ENV_DIR/repo/backend"
-          rsync -a --delete ./ "$ENV_DIR/repo/backend/"
-          cd "$ENV_DIR" && docker compose up -d --build backend
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync to EC2 and deploy
+        run: |
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
+            ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/divvy/repo/backend/"
+          ssh -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            "cd /opt/divvy && docker compose up -d --build backend"
