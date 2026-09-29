@@ -22,4 +22,4 @@ jobs:
           rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
             ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/divvy/repo/backend/"
           ssh -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
-            "cd /opt/divvy && docker compose up -d --build backend"
+            "cd /opt/divvy && docker compose up -d --build"
