@@ -1,6 +1,15 @@
 #!/bin/bash
 set -euxo pipefail
 
+# --- sshd hardening: port 22 is open to the internet (GitHub Actions runner IPs vary) ---
+mkdir -p /etc/ssh/sshd_config.d
+cat > /etc/ssh/sshd_config.d/99-hardening.conf <<'SSHD'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+SSHD
+systemctl reload ssh || systemctl reload sshd || true
+
 # --- swap: t3.micro only has 1GB RAM, Maven builds OOM without this ---
 if [ ! -f /swapfile ]; then
   fallocate -l 1G /swapfile

@@ -35,19 +35,11 @@ resource "aws_security_group" "backend" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "SSH"
+    description = "SSH (key-only auth; open because GitHub-hosted Actions runners use unpredictable IPs)"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.my_ip]
-  }
-
-  ingress {
-    description = "SSH via EC2 Instance Connect (browser-based, AWS-managed range for us-east-1)"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["18.206.107.24/29"]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
