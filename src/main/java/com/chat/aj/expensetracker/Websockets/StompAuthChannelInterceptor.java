@@ -5,6 +5,7 @@ import com.chat.aj.expensetracker.common.Entities.Group;
 import com.chat.aj.expensetracker.common.Entities.User;
 import com.chat.aj.expensetracker.security.JWT.JWTService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -28,6 +29,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private final JWTService jwtService;
     private final UserDetailsService userDetailsService;
+    @Lazy
     private final GroupService groupService;
 
     @Override
