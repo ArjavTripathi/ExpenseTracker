@@ -4,7 +4,6 @@ import com.chat.aj.expensetracker.Groups.GroupService;
 import com.chat.aj.expensetracker.common.Entities.Group;
 import com.chat.aj.expensetracker.common.Entities.User;
 import com.chat.aj.expensetracker.security.JWT.JWTService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -23,14 +22,20 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-@RequiredArgsConstructor
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private static final Pattern GROUP_TOPIC = Pattern.compile("^/topic/group/(\\d+)$");
 
     private final JWTService jwtService;
     private final UserDetailsService userDetailsService;
-    @Lazy
     private final GroupService groupService;
+
+    public StompAuthChannelInterceptor(JWTService jwtService,
+                                        UserDetailsService userDetailsService,
+                                        @Lazy GroupService groupService) {
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
+        this.groupService = groupService;
+    }
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
